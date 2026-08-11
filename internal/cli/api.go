@@ -46,12 +46,28 @@ func newAPICmd(g *globalOpts) *cobra.Command {
 	return apiCmd
 }
 
-// flagNameFor converts an API parameter name to a CLI flag name, avoiding
-// reserved names and duplicates.
+// flagNameFor converts an API parameter name to a kebab-case CLI flag name
+// (any non-alphanumeric run becomes one dash: "issue_class~neq" ->
+// "issue-class-neq"), avoiding reserved names and duplicates. The original
+// parameter name is still what gets sent on the wire.
 func flagNameFor(param string, used map[string]bool) string {
-	n := strings.ToLower(param)
-	n = strings.ReplaceAll(n, "_", "-")
-	n = strings.ReplaceAll(n, ".", "-")
+	var b strings.Builder
+	dash := false
+	for _, c := range strings.ToLower(param) {
+		if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') {
+			if dash && b.Len() > 0 {
+				b.WriteByte('-')
+			}
+			dash = false
+			b.WriteRune(c)
+		} else {
+			dash = true
+		}
+	}
+	n := b.String()
+	if n == "" {
+		n = "param"
+	}
 	if reservedFlags[n] {
 		n = "param-" + n
 	}
@@ -196,13 +212,12 @@ func newRawCmd(g *globalOpts) *cobra.Command {
 // execute performs the request (or dumps it under --dry-run) and renders the
 // result envelope.
 func execute(cmd *cobra.Command, g *globalOpts, client *api.Client, req api.Request, paginate bool) error {
-	out := cmd.OutOrStdout()
 	if g.DryRun {
 		dump, err := client.Dump(req)
 		if err != nil {
 			return err
 		}
-		return output.Render(out, g.format(output.JSON), dump)
+		return g.renderValue(cmd, dump, output.JSON)
 	}
 	ctx := cmd.Context()
 	var env *api.Envelope
@@ -218,5 +233,5 @@ func execute(cmd *cobra.Command, g *globalOpts, client *api.Client, req api.Requ
 	for _, m := range env.Messages {
 		fmt.Fprintf(cmd.ErrOrStderr(), "note: %s\n", m.Message)
 	}
-	return output.RenderRaw(out, g.format(output.JSON), env.Result)
+	return g.renderResult(cmd, env.Result, output.JSON)
 }

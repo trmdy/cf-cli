@@ -83,3 +83,24 @@ func TestCell(t *testing.T) {
 		t.Error("nil should be empty")
 	}
 }
+
+func TestApplyQuery(t *testing.T) {
+	raw := json.RawMessage(`[{"id":"a","n":1},{"id":"b","n":2}]`)
+	got, err := ApplyQuery(raw, ".[].id")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != `["a","b"]` {
+		t.Errorf("multi-output collect: %s", got)
+	}
+	got, err = ApplyQuery(raw, "length")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "2" {
+		t.Errorf("single output: %s", got)
+	}
+	if _, err := ApplyQuery(raw, ".[foo"); err == nil {
+		t.Error("expected parse error")
+	}
+}

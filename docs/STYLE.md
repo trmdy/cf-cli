@@ -54,9 +54,13 @@ Two layers, never mixed:
   long cells with `output.Cell`.
 - Tests are required for logic (request building, flag mapping, parsing).
   Use `httptest` for API interactions; never hit the real API in tests.
-- `make check` (vet + tests + build) must pass. Contract tests
-  (`tools/gen/contract_test.go`) verify plumbing against the spec — run
-  `make spec gen test` before submitting.
+- `make check` (vet + style lint + tests + build) must pass. The style
+  linter (`tools/lint`) walks the whole command tree and machine-enforces
+  the rules above. Contract tests (`tools/gen/contract_test.go`) verify
+  plumbing against the spec — run `make spec gen test` before submitting.
+- Render API results through `g.renderResult` / `g.renderValue` so the
+  global `--query` (jq) and `--output` flags work uniformly. Never print
+  results with raw fmt/json directly.
 
 ## Definition of done for a product's porcelain
 

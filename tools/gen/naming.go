@@ -30,11 +30,26 @@ type derived struct {
 
 func isParamSeg(s string) bool { return strings.HasPrefix(s, "{") }
 
+// slugSeg normalizes a path segment to kebab-case, mapping any run of
+// non-alphanumeric characters to a single dash. Segments with no
+// alphanumeric content (Cloudflare uses a literal "-" to mean "all") slug to
+// "" and are dropped by callers.
 func slugSeg(s string) string {
 	s = strings.ToLower(s)
-	s = strings.ReplaceAll(s, "_", "-")
-	s = strings.ReplaceAll(s, ".", "-")
-	return s
+	var b strings.Builder
+	dash := false
+	for _, c := range s {
+		if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') {
+			if dash && b.Len() > 0 {
+				b.WriteByte('-')
+			}
+			dash = false
+			b.WriteRune(c)
+		} else {
+			dash = true
+		}
+	}
+	return b.String()
 }
 
 // deriveCommand maps an HTTP method + path template to (product, name).
@@ -110,7 +125,9 @@ func deriveCommand(method, path string, hasGetSibling bool, m mapping) derived {
 	var nouns []string
 	for _, s := range rest {
 		if !isParamSeg(s) {
-			nouns = append(nouns, slugSeg(s))
+			if slug := slugSeg(s); slug != "" {
+				nouns = append(nouns, slug)
+			}
 		}
 	}
 	name := verb

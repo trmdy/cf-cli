@@ -17,6 +17,8 @@ jobs:
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - name: Vet
         run: go vet ./...
+      - name: Style lint
+        run: make lint
       - name: Download OpenAPI spec
         run: make spec
       - name: Contract tests (registry vs spec)

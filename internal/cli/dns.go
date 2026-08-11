@@ -120,15 +120,15 @@ func newDNSListCmd(g *globalOpts) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				return output.Render(cmd.OutOrStdout(), g.format(output.JSON), dump)
+				return g.renderValue(cmd, dump, output.JSON)
 			}
 			env, err := client.DoAutoPaginate(cmd.Context(), req)
 			if err != nil {
 				return err
 			}
 			format := g.format(output.Table)
-			if format != output.Table {
-				return output.RenderRaw(cmd.OutOrStdout(), format, env.Result)
+			if g.Query != "" || format != output.Table {
+				return g.renderResult(cmd, env.Result, output.JSON)
 			}
 			var records []dnsRecord
 			if err := json.Unmarshal(env.Result, &records); err != nil {
@@ -326,13 +326,13 @@ func runDNSRequest(cmd *cobra.Command, g *globalOpts, client *api.Client, req ap
 		if err != nil {
 			return err
 		}
-		return output.Render(cmd.OutOrStdout(), g.format(output.JSON), dump)
+		return g.renderValue(cmd, dump, output.JSON)
 	}
 	env, err := client.Do(cmd.Context(), req)
 	if err != nil {
 		return err
 	}
-	return output.RenderRaw(cmd.OutOrStdout(), g.format(output.JSON), env.Result)
+	return g.renderResult(cmd, env.Result, output.JSON)
 }
 
 // confirm prompts on stderr and reads y/N from stdin; it declines when stdin

@@ -7,7 +7,7 @@ SPEC := specs/openapi.json
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -X github.com/trmdy/cf-cli/internal/cli.Version=$(VERSION)
 
-.PHONY: all build test vet fmt gen spec check clean
+.PHONY: all build test vet fmt gen spec lint check clean
 
 all: build
 
@@ -31,7 +31,10 @@ vet:
 fmt:
 	gofmt -l -w .
 
-check: vet test build
+lint:
+	go run ./tools/lint
+
+check: vet lint test build
 
 clean:
 	rm -rf bin
