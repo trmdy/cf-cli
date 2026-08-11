@@ -90,6 +90,9 @@ Gate addendum: after main added `fmt-check`, the branch passed
 reported no Queue files. Supplemental approval buz:
 `019feff8-f9e8-73fb-bf2b-2183a33002a2`.
 
+Maintainer handoff: squash-merged as `78a67e4`. The clean Queues
+worktree/local branch was removed and sealed implementer `CO.6517` retired.
+
 ## Hyperdrive — `product/hyperdrive`
 
 Initial verdict: changes required, rework round 1.
@@ -106,6 +109,18 @@ The initial branch scope was clean and the coordinator full gate was green at
 `ca7fc5a`; the verdict remains changes required until the request-validation
 rework is sealed. Findings were sent to `CO.d2ed` by buz subject
 `review.rework.round1` and direct notification.
+
+Re-review verdict: approved at `a6d5764`.
+
+- SSL mode is trimmed, lowercased, validated, and the canonical enum is placed
+  in both create and update bodies.
+- Connection limits outside 5 through 100 are rejected for create and update;
+  upper and lower errors plus the maximum boundary are covered.
+- `git diff main...product/hyperdrive` remains limited to
+  `internal/cli/root.go`, `internal/cli/hyperdrive.go`, and
+  `internal/cli/hyperdrive_test.go`; no prohibited kernel paths.
+- Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
+  at `a6d5764` with GOROOT/GOBIN unset.
 
 ## D1 — `product/d1`
 
@@ -126,3 +141,56 @@ The initial diff changes only `internal/cli/d1.go`, `internal/cli/d1_test.go`,
 and the expected root registration; no kernel paths. The old gate was green at
 `027568a`. Findings and the repaired current-main formatting-gate requirement
 were sent to `CO.0350` by buz subject `review.rework.round1` and direct message.
+
+Re-review verdict: approved at `d334b36`.
+
+- Jurisdiction and primary-location values are trimmed, lowercased, and checked
+  against their pinned API enums; valid canonical body output and invalid values
+  are covered.
+- The mutually ineffective jurisdiction plus primary-location combination is
+  rejected before client/network work.
+- Inline whitespace-only SQL now follows the same empty-input rule as `@file`.
+- Branch scope remains the two D1 CLI files plus root registration; no prohibited
+  kernel paths.
+- Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
+  at `d334b36` with GOROOT/GOBIN unset.
+
+## Pages — `product/pages`
+
+Initial verdict: changes required, rework round 1.
+
+- Blocking: `production_branch` is required by project create, but an explicitly
+  empty or whitespace `--production-branch` is trimmed and omitted through
+  `omitempty`. Reject it locally and cover body/CLI validation.
+- Blocking: create help says the command creates projects for Git builds, but
+  the request has no repository `source` object and therefore creates a Direct
+  Upload project. Correct the help without expanding scope into repository auth.
+- Blocking: rollback help says the deployment becomes live for “its
+  environment,” while the endpoint only rolls back to successful production
+  deployments. Correct Long/help/confirmation text and assert it.
+
+The initial diff changes only `internal/cli/pages.go`,
+`internal/cli/pages_test.go`, and the root registration; no kernel paths. It
+passed the current-main gate including `fmt-check` at `3b343dd`. Findings were
+sent to `CL.91a` by buz subject `review.rework.round1` and direct message.
+
+## Images — `product/images`
+
+Initial verdict: changes required, rework round 1.
+
+- Blocking: list help documents `--creator ""` as the filter for images with no
+  creator, but request construction drops an empty value. Preserve whether the
+  flag was explicitly changed so dry-run and every page send `creator=` only
+  when requested; add request and pagination coverage.
+- Blocking: upload metadata claims to require a JSON object, but JSON `null`
+  unmarshals into a nil map without error and is accepted. Reject null alongside
+  arrays, scalars, and malformed JSON.
+- Integration: rename generic package helper `requireAccountID` to
+  `requireImagesAccountID`; a sibling collision with the same name was already
+  found during Stream review, and product-scoped symbols prevent recurrence.
+
+The initial diff changes only `internal/cli/images.go`,
+`internal/cli/images_test.go`, and the root registration; multipart upload uses
+the shared `api.Request.ContentType` without a kernel edit. It passed the
+current-main gate including `fmt-check` at `8f1dd15`. Findings were sent to
+`GR.bb2d` by buz subject `review.rework.round1` and direct message.
