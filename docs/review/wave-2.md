@@ -85,6 +85,11 @@ Re-review verdict: approved at `e4ac222`.
 Remaining low-risk tradeoff: a queue name that itself looks exactly like a
 32-character hexadecimal resource ID is treated as an ID and skips lookup.
 
+Gate addendum: after main added `fmt-check`, the branch passed
+`env -u GOROOT -u GOBIN make -f <current-main>/Makefile check`; `gofmt -l`
+reported no Queue files. Supplemental approval buz:
+`019feff8-f9e8-73fb-bf2b-2183a33002a2`.
+
 ## Hyperdrive — `product/hyperdrive`
 
 Initial verdict: changes required, rework round 1.
@@ -101,3 +106,23 @@ The initial branch scope was clean and the coordinator full gate was green at
 `ca7fc5a`; the verdict remains changes required until the request-validation
 rework is sealed. Findings were sent to `CO.d2ed` by buz subject
 `review.rework.round1` and direct notification.
+
+## D1 — `product/d1`
+
+Initial verdict: changes required, rework round 1.
+
+- Blocking: `--jurisdiction` and `--primary-location` advertise closed enums in
+  help but are serialized without validation or normalization. Validate the API
+  values (`eu|fedramp|us` and `wnam|enam|weur|eeur|apac|oc`) consistently with
+  the existing read-replication normalization and add body/boundary tests.
+- Blocking: supplying jurisdiction and primary-location together is silently
+  accepted even though the API ignores the location hint when jurisdiction is
+  present. Reject this contradictory request locally.
+- Blocking: whitespace-only inline `--command` SQL is sent, while equivalent
+  whitespace-only `@file` input is correctly rejected. Make the two paths
+  consistent and add coverage.
+
+The initial diff changes only `internal/cli/d1.go`, `internal/cli/d1_test.go`,
+and the expected root registration; no kernel paths. The old gate was green at
+`027568a`. Findings and the repaired current-main formatting-gate requirement
+were sent to `CO.0350` by buz subject `review.rework.round1` and direct message.
