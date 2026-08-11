@@ -79,6 +79,13 @@ Initial verdict: changes required at `a10e9fc`, rework round 1.
 - The namespace/script endpoints and `bindings_inherit=strict` query match the
   pinned API. The live upload correctly uses `Client.DoStream`.
 
+Final verdict: approved at `df3176b`. The upload now uses one shared multipart
+writer for deterministic dry-run output and streamed live requests, with the
+module MIME fixed to `application/javascript+module`. The parent-file diff is
+exactly one constructor line inside the existing `AddCommand` list. Targeted
+uncached tests and `make check` pass. Approval buz:
+`019ff129-6de7-766d-8d4c-b42f4c9ac7e1`.
+
 ## Workers Scripts — `product/workers-scripts`
 
 Initial verdict: changes required at `87eaf43`, rework round 1.
@@ -97,6 +104,13 @@ Initial verdict: changes required at `87eaf43`, rework round 1.
   MIME types. Live upload uses `DoStream`, content download streams raw bytes,
   and the remaining endpoints match the pinned API.
 
+Final verdict: approved at `3512e2e`. The parent-file diff is exactly one
+in-list constructor addition, the account component is path-escaped, and
+multipart module names reject header controls and invalid UTF-8 while retaining
+nested names. `Client.DoStream` and `Request.ContentType` cover the large and
+non-JSON transfers as required. Targeted uncached tests and `make check` pass.
+Approval buz: `019ff129-6de9-762b-81cb-aab1a97b546a`.
+
 ## SSL Certificates — `product/ssl-certs`
 
 Initial verdict: changes required at `b12cba9`, rework round 1.
@@ -109,6 +123,16 @@ Initial verdict: changes required at `b12cba9`, rework round 1.
 - Origin CA create accepts any non-empty hostname. Enforce the documented FQDN
   and wildcard shape locally, including rejection of double/interior
   wildcards and invalid single-label wildcard names.
+
+Round 2 fixed the remaining dry-run inconsistency: pack order now reads the
+resolved zone and enforces the apex requirement in both live and dry-run modes,
+while dry-run still never sends the POST.
+
+Final verdict: approved at `aa73351`. All zone-scoped paths use
+`resolveZoneInteractive`, the apex and Origin CA hostname contracts are covered,
+and the standalone diff is the two product files plus one root registration.
+Targeted uncached tests and `make check` pass. Approval buz:
+`019ff129-6ddd-7329-815e-117fdc9b4559`.
 
 ## Rulesets — `product/rulesets`
 
@@ -127,7 +151,7 @@ and passes targeted uncached tests plus `make check`. Approval buz:
 
 ## Waiting Room — `product/waiting-room`
 
-Initial verdict: changes required at `0c1cd5c`, rework round 1 in progress.
+Initial verdict: changes required at `0c1cd5c`, rework round 1.
 
 - Rebase onto main `21648e3` and use `resolveZoneInteractive` for all
   zone-scoped waiting-room commands.
@@ -141,9 +165,16 @@ Initial verdict: changes required at `0c1cd5c`, rework round 1 in progress.
 - Validate the documented no-wildcard/no-query route paths and apply the same
   no-scheme/no-wildcard host rule to additional routes.
 
+Final verdict: approved at `4ca5554`. Room, event, and rule updates now perform
+the documented read-merge-write flow, preserve unknown fields, strip read-only
+properties, and validate the complete merged request; dry-run performs the read
+without writing. Position and route constraints and interactive zone resolution
+are covered. Targeted uncached tests and `make check` pass. Approval buz:
+`019ff129-6deb-730a-8c33-16c90ebab895`.
+
 ## Access Apps — `product/access-apps`
 
-Initial verdict: changes required at `b6bc057`, rework round 1 in progress.
+Initial verdict: changes required at `b6bc057`, rework round 1.
 
 - Blocking boundary violation: `internal/cli/access.go` must match main except
   for exactly one added `newAccessAppsCmd(g)` line. The current diff also
@@ -156,9 +187,16 @@ Initial verdict: changes required at `b6bc057`, rework round 1 in progress.
   before client or zone resolution, and validate scope combinations before
   constructing a client.
 
+Final verdict: approved at `b8b9b3c`. The access parent diff is exactly one
+in-list constructor line, zone resolution is interactive, and invalid scope or
+zone-filter combinations fail before client construction or resolution. The
+CRUD, read-merge PUT, policy-rule, dry-run, pagination, and output contracts
+match the pinned API. Targeted uncached tests and `make check` pass. Approval
+buz: `019ff129-6dee-71dc-80a2-c760a87d6132`.
+
 ## Access Identity — `product/access-identity`
 
-Initial verdict: changes required at `8c73a4d`, rework round 1 in progress.
+Initial verdict: changes required at `8c73a4d`, rework round 1.
 
 - Blocking boundary violation: `internal/cli/access.go` reindents/deletes
   scaffold comments. Restore the parent file exactly and add only
@@ -168,6 +206,13 @@ Initial verdict: changes required at `8c73a4d`, rework round 1 in progress.
   `devices` in the JSON body beside `email`, but `revoke-sessions` sends it as
   a query parameter. Move it into the body and test unset, true, and explicit
   false.
+
+Final verdict: approved at `681db36`. The access parent diff is exactly one
+in-list constructor line. Revoke sessions now sends `devices` in the JSON body,
+preserves explicit false, omits the field when unset, and sends no query string.
+The remaining provider, group, token, and user contracts match the pinned API.
+Targeted uncached tests and `make check` pass. Approval buz:
+`019ff129-6def-73ec-b98b-6e96b6770d97`.
 
 ## Web Analytics — `product/web-analytics`
 
@@ -181,3 +226,6 @@ Final verdict: approved at `32ec8df` with no rework.
 - Targeted uncached tests and branch `make check` pass; integrated main
   `4f3131c` also passes. Approval buz:
   `019ff121-8c9f-749c-9f61-2bc97a19d6fe`.
+
+Landed on main as `8f02c3d`; its clean worktree, local product branch, and Hive
+session were retired.
