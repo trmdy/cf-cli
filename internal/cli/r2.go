@@ -1,10 +1,11 @@
 package cli
 
 // R2 porcelain: the everyday bucket workflows.
-// Object commands are deliberately excluded because internal/api only supports
-// JSON request and response bodies; object transfer needs binary streaming.
+// Object commands are deliberately excluded because complete R2 transfers need
+// streaming. api.Client.DoRaw buffers and caps each transfer at 100 MiB.
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +23,13 @@ type r2Bucket struct {
 	CreationDate string `json:"creation_date"`
 	Location     string `json:"location"`
 }
+
+type r2BucketList struct {
+	Buckets []r2Bucket `json:"buckets"`
+	Cursor  string     `json:"cursor"`
+}
+
+const r2MaxPages = 1000
 
 func newR2Cmd(g *globalOpts) *cobra.Command {
 	cmd := &cobra.Command{
@@ -52,6 +60,34 @@ func r2AccountID(accountID string) (string, error) {
 	return accountID, nil
 }
 
+func r2BucketName(bucketName string) (string, error) {
+	bucketName = strings.TrimSpace(bucketName)
+	if bucketName == "" {
+		return "", errors.New("bucket name cannot be empty")
+	}
+	return bucketName, nil
+}
+
+func r2ListBuckets(ctx context.Context, client *api.Client, req api.Request) ([]r2Bucket, error) {
+	var buckets []r2Bucket
+	for page := 1; page <= r2MaxPages; page++ {
+		env, err := client.Do(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		var result r2BucketList
+		if err := json.Unmarshal(env.Result, &result); err != nil {
+			return nil, fmt.Errorf("list R2 buckets: unexpected response: %w", err)
+		}
+		buckets = append(buckets, result.Buckets...)
+		if result.Cursor == "" {
+			return buckets, nil
+		}
+		req.Query.Set("cursor", result.Cursor)
+	}
+	return nil, fmt.Errorf("list R2 buckets: stopped after %d pages", r2MaxPages)
+}
+
 func newR2ListCmd(g *globalOpts) *cobra.Command {
 	var nameContains string
 	cmd := &cobra.Command{
@@ -80,17 +116,17 @@ func newR2ListCmd(g *globalOpts) *cobra.Command {
 				}
 				return g.renderValue(cmd, dump, output.JSON)
 			}
-			env, err := client.DoAutoPaginate(cmd.Context(), req)
+			buckets, err := r2ListBuckets(cmd.Context(), client, req)
+			if err != nil {
+				return err
+			}
+			result, err := json.Marshal(r2BucketList{Buckets: buckets})
 			if err != nil {
 				return err
 			}
 			format := g.format(output.Table)
 			if g.Query != "" || format != output.Table {
-				return g.renderResult(cmd, env.Result, output.JSON)
-			}
-			var buckets []r2Bucket
-			if err := json.Unmarshal(env.Result, &buckets); err != nil {
-				return output.RenderRaw(cmd.OutOrStdout(), output.JSON, env.Result)
+				return g.renderResult(cmd, result, output.JSON)
 			}
 			rows := make([][]string, 0, len(buckets))
 			for _, bucket := range buckets {
@@ -111,8 +147,9 @@ func newR2CreateCmd(g *globalOpts) *cobra.Command {
 		Long:  "Create an R2 bucket.\n\nExamples:\n\n  cf r2 create backups\n  cf r2 create eu-assets --location weur",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if strings.TrimSpace(args[0]) == "" {
-				return errors.New("bucket name cannot be empty")
+			bucketName, err := r2BucketName(args[0])
+			if err != nil {
+				return err
 			}
 			client, cfg, err := g.client(true)
 			if err != nil {
@@ -122,7 +159,7 @@ func newR2CreateCmd(g *globalOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			body := map[string]string{"name": args[0]}
+			body := map[string]string{"name": bucketName}
 			if cmd.Flags().Changed("location") {
 				if strings.TrimSpace(location) == "" {
 					return errors.New("--location cannot be empty")
@@ -149,6 +186,10 @@ func newR2DeleteCmd(g *globalOpts) *cobra.Command {
 		Long:  "Delete an R2 bucket. The bucket must be empty.\n\nExamples:\n\n  cf r2 delete old-backups --force",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			bucketName, err := r2BucketName(args[0])
+			if err != nil {
+				return err
+			}
 			client, cfg, err := g.client(true)
 			if err != nil {
 				return err
@@ -158,11 +199,11 @@ func newR2DeleteCmd(g *globalOpts) *cobra.Command {
 				return err
 			}
 			if !force && !g.DryRun {
-				if !confirm(fmt.Sprintf("Delete R2 bucket %s?", args[0])) {
+				if !confirm(fmt.Sprintf("Delete R2 bucket %s?", bucketName)) {
 					return errors.New("aborted (pass --force to skip confirmation)")
 				}
 			}
-			req := api.Request{Method: "DELETE", Path: r2BucketPath(accountID, args[0])}
+			req := api.Request{Method: "DELETE", Path: r2BucketPath(accountID, bucketName)}
 			return runR2Request(cmd, g, client, req)
 		},
 	}
@@ -177,6 +218,10 @@ func newR2InfoCmd(g *globalOpts) *cobra.Command {
 		Long:  "Show R2 bucket details.\n\nExamples:\n\n  cf r2 info backups",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			bucketName, err := r2BucketName(args[0])
+			if err != nil {
+				return err
+			}
 			client, cfg, err := g.client(true)
 			if err != nil {
 				return err
@@ -185,7 +230,7 @@ func newR2InfoCmd(g *globalOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			req := api.Request{Method: "GET", Path: r2BucketPath(accountID, args[0])}
+			req := api.Request{Method: "GET", Path: r2BucketPath(accountID, bucketName)}
 			return runR2Request(cmd, g, client, req)
 		},
 	}

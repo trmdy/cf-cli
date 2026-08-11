@@ -50,7 +50,7 @@ func TestR2BucketCommandsSendExpectedRequests(t *testing.T) {
 		switch r.Method {
 		case "GET":
 			if strings.HasSuffix(r.URL.Path, "/r2/buckets") {
-				_, _ = w.Write([]byte(`{"success":true,"result":[{"name":"photos","creation_date":"2026-01-02T03:04:05Z","location":"WNAM"}]}`))
+				_, _ = w.Write([]byte(`{"success":true,"result":{"buckets":[{"name":"photos","creation_date":"2026-01-02T03:04:05Z","location":"WNAM"}]}}`))
 				return
 			}
 			_, _ = w.Write([]byte(`{"success":true,"result":{"name":"photos","location":"WNAM"}}`))
@@ -98,6 +98,45 @@ func TestR2BucketCommandsSendExpectedRequests(t *testing.T) {
 	}
 	if got := requests[3]; got.method != "DELETE" || got.path != path+"/photos" {
 		t.Errorf("delete request = %#v", got)
+	}
+}
+
+func TestR2ListFollowsCursorAcrossPages(t *testing.T) {
+	var cursors []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || !strings.HasSuffix(r.URL.Path, "/r2/buckets") {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		if got := r.URL.Query().Get("per_page"); got != "100" {
+			t.Fatalf("per_page = %q", got)
+		}
+		cursor := r.URL.Query().Get("cursor")
+		cursors = append(cursors, cursor)
+		w.Header().Set("Content-Type", "application/json")
+		switch cursor {
+		case "":
+			_, _ = w.Write([]byte(`{"success":true,"result":{"buckets":[{"name":"first"}],"cursor":"next-page"}}`))
+		case "next-page":
+			_, _ = w.Write([]byte(`{"success":true,"result":{"buckets":[{"name":"second"}]}}`))
+		default:
+			t.Fatalf("unexpected cursor %q", cursor)
+		}
+	}))
+	defer srv.Close()
+
+	stdout, _, err := runR2CLI(t, srv.URL, "--output", "json", "r2", "list")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result r2BucketList
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		t.Fatalf("list output is not JSON: %v\n%s", err, stdout)
+	}
+	if len(result.Buckets) != 2 || result.Buckets[0].Name != "first" || result.Buckets[1].Name != "second" {
+		t.Fatalf("buckets = %#v", result.Buckets)
+	}
+	if len(cursors) != 2 || cursors[0] != "" || cursors[1] != "next-page" {
+		t.Fatalf("cursors = %#v", cursors)
 	}
 }
 
@@ -154,6 +193,16 @@ func TestR2ValidationAndArguments(t *testing.T) {
 	_, _, err = runR2CLI(t, "http://example.invalid", "r2", "delete", "photos")
 	if err == nil || !strings.Contains(err.Error(), "pass --force") {
 		t.Fatalf("expected destructive confirmation error, got %v", err)
+	}
+	for _, args := range [][]string{
+		{"r2", "create", "", "--dry-run"},
+		{"r2", "info", "   ", "--dry-run"},
+		{"r2", "delete", "", "--force", "--dry-run"},
+	} {
+		_, _, err := runR2CLI(t, "http://example.invalid", args...)
+		if err == nil || !strings.Contains(err.Error(), "bucket name cannot be empty") {
+			t.Fatalf("expected bucket-name error for %v, got %v", args, err)
+		}
 	}
 	for _, args := range [][]string{
 		{"r2", "list", "extra", "--dry-run"},
