@@ -12,6 +12,7 @@ func newAccessCmd(g *globalOpts) *cobra.Command {
 		Short: "Manage Cloudflare Access (Zero Trust)",
 	}
 	cmd.AddCommand(
+		newAccessAppsCmd(g),
 	// sub-shard constructors register here, one line each:
 	// newAccessAppsCmd(g),
 	// newAccessIdentityCmd(g),
