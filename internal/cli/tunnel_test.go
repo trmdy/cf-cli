@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -1090,6 +1092,45 @@ func TestTunnelCommandsRejectStrayArgs(t *testing.T) {
 			}
 		})
 	}
+}
+
+// No command should list the same example twice, and every command with a
+// Long should carry at least one.
+func TestTunnelHelpExamplesAreUniquePerCommand(t *testing.T) {
+	root := NewRootCmd()
+	var tunnelCmd *cobra.Command
+	for _, c := range root.Commands() {
+		if c.Name() == "tunnel" {
+			tunnelCmd = c
+		}
+	}
+	if tunnelCmd == nil {
+		t.Fatal("tunnel command not registered on root")
+	}
+
+	var walk func(cmd *cobra.Command, path string)
+	walk = func(cmd *cobra.Command, path string) {
+		var examples []string
+		for _, line := range strings.Split(cmd.Long, "\n") {
+			if line := strings.TrimSpace(line); strings.HasPrefix(line, "cf ") {
+				examples = append(examples, line)
+			}
+		}
+		if cmd.RunE != nil && cmd.Long != "" && len(examples) == 0 {
+			t.Errorf("%s: Long has no example", path)
+		}
+		seen := map[string]bool{}
+		for _, e := range examples {
+			if seen[e] {
+				t.Errorf("%s: duplicate example %q", path, e)
+			}
+			seen[e] = true
+		}
+		for _, sub := range cmd.Commands() {
+			walk(sub, path+" "+sub.Name())
+		}
+	}
+	walk(tunnelCmd, "cf tunnel")
 }
 
 func TestTunnelHelpIncludesExamples(t *testing.T) {

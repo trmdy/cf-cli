@@ -420,12 +420,12 @@ func newTunnelConfigGetCmd(g *globalOpts) *cobra.Command {
 		Use:   "get <tunnel>",
 		Short: "Show the configuration of a tunnel",
 		Long: `Show the remotely-managed configuration (ingress rules, warp routing,
-origin request settings) of a tunnel.
+origin request settings) of a tunnel. Narrow the output with the global
+--query flag, for example --query '.config.ingress'.
 
 Examples:
 
-  cf tunnel config get prod-tunnel
-  cf tunnel config get prod-tunnel --query '.config.ingress'`,
+  cf tunnel config get prod-tunnel`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, cfg, err := g.client(true)
