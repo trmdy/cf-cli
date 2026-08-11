@@ -51,6 +51,7 @@ Examples:
   cf cache purge --zone example.com --tag product --tag images
   cf cache purge --zone example.com --host www.example.com
   cf cache purge --zone example.com --prefix www.example.com/static`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			body, summary, err := buildCachePurgeBody(everything, urls, tags, hosts, prefixes)
 			if err != nil {
@@ -174,6 +175,7 @@ func newCacheSmartTieredGetCmd(g *globalOpts) *cobra.Command {
 		Use:   "get",
 		Short: "Show Smart Tiered Cache setting",
 		Long:  "Show the Smart Tiered Cache setting for a zone.\n\nExamples:\n\n  cf cache smart-tiered get --zone example.com",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, cfg, err := g.client(true)
 			if err != nil {
@@ -202,6 +204,7 @@ Examples:
 
   cf cache smart-tiered set --zone example.com --value on
   cf cache smart-tiered set --zone example.com --value off`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			body, err := buildSmartTieredBody(value)
 			if err != nil {

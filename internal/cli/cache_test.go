@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-const testZoneID = "0123456789abcdef0123456789abcdef"
+const cacheTestZoneID = "0123456789abcdef0123456789abcdef"
 
 func runCacheCLI(t *testing.T, serverURL string, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
@@ -35,7 +35,7 @@ func TestBuildCachePurgeBodyEverything(t *testing.T) {
 	if summary != "everything" {
 		t.Fatalf("summary = %q", summary)
 	}
-	assertJSONEqual(t, body, `{"purge_everything":true}`)
+	cacheAssertJSONEqual(t, body, `{"purge_everything":true}`)
 }
 
 func TestBuildCachePurgeBodyURL(t *testing.T) {
@@ -46,7 +46,7 @@ func TestBuildCachePurgeBodyURL(t *testing.T) {
 	if summary != "2 URL(s)" {
 		t.Fatalf("summary = %q", summary)
 	}
-	assertJSONEqual(t, body, `{"files":["https://example.com/a.js","https://example.com/b.css"]}`)
+	cacheAssertJSONEqual(t, body, `{"files":["https://example.com/a.js","https://example.com/b.css"]}`)
 }
 
 func TestBuildCachePurgeBodyTagHostPrefix(t *testing.T) {
@@ -54,19 +54,19 @@ func TestBuildCachePurgeBodyTagHostPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertJSONEqual(t, body, `{"tags":["product","images"]}`)
+	cacheAssertJSONEqual(t, body, `{"tags":["product","images"]}`)
 
 	body, _, err = buildCachePurgeBody(false, nil, nil, []string{"www.example.com"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertJSONEqual(t, body, `{"hosts":["www.example.com"]}`)
+	cacheAssertJSONEqual(t, body, `{"hosts":["www.example.com"]}`)
 
 	body, _, err = buildCachePurgeBody(false, nil, nil, nil, []string{"www.example.com/static"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertJSONEqual(t, body, `{"prefixes":["www.example.com/static"]}`)
+	cacheAssertJSONEqual(t, body, `{"prefixes":["www.example.com/static"]}`)
 }
 
 func TestBuildCachePurgeBodyValidation(t *testing.T) {
@@ -89,13 +89,13 @@ func TestBuildSmartTieredBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertJSONEqual(t, body, `{"value":"on"}`)
+	cacheAssertJSONEqual(t, body, `{"value":"on"}`)
 
 	body, err = buildSmartTieredBody("OFF")
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertJSONEqual(t, body, `{"value":"off"}`)
+	cacheAssertJSONEqual(t, body, `{"value":"off"}`)
 
 	if _, err := buildSmartTieredBody("maybe"); err == nil || !strings.Contains(err.Error(), "on or off") {
 		t.Fatalf("expected value error, got %v", err)
@@ -105,7 +105,7 @@ func TestBuildSmartTieredBody(t *testing.T) {
 func TestCachePurgeDryRunEverything(t *testing.T) {
 	stdout, _, err := runCacheCLI(t, "http://example.invalid",
 		"cache", "purge",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 		"--everything",
 		"--force",
 		"--dry-run",
@@ -121,17 +121,17 @@ func TestCachePurgeDryRunEverything(t *testing.T) {
 		t.Errorf("method = %v", dump["method"])
 	}
 	url, _ := dump["url"].(string)
-	if !strings.HasSuffix(url, "/zones/"+testZoneID+"/purge_cache") {
+	if !strings.HasSuffix(url, "/zones/"+cacheTestZoneID+"/purge_cache") {
 		t.Errorf("url = %s", url)
 	}
 	body, _ := json.Marshal(dump["body"])
-	assertJSONEqual(t, body, `{"purge_everything":true}`)
+	cacheAssertJSONEqual(t, body, `{"purge_everything":true}`)
 }
 
 func TestCachePurgeDryRunByURL(t *testing.T) {
 	stdout, _, err := runCacheCLI(t, "http://example.invalid",
 		"cache", "purge",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 		"--url", "https://example.com/a.js",
 		"--url", "https://example.com/b.css",
 		"--force",
@@ -151,7 +151,7 @@ func TestCachePurgeDryRunByURL(t *testing.T) {
 	if dump.Method != "POST" {
 		t.Errorf("method = %s", dump.Method)
 	}
-	assertJSONEqual(t, dump.Body, `{"files":["https://example.com/a.js","https://example.com/b.css"]}`)
+	cacheAssertJSONEqual(t, dump.Body, `{"files":["https://example.com/a.js","https://example.com/b.css"]}`)
 }
 
 func TestCachePurgeDryRunByTagHostPrefix(t *testing.T) {
@@ -168,7 +168,7 @@ func TestCachePurgeDryRunByTagHostPrefix(t *testing.T) {
 		t.Run(tc.flag, func(t *testing.T) {
 			stdout, _, err := runCacheCLI(t, "http://example.invalid",
 				"cache", "purge",
-				"--zone", testZoneID,
+				"--zone", cacheTestZoneID,
 				tc.flag, tc.value,
 				"--force",
 				"--dry-run",
@@ -182,7 +182,7 @@ func TestCachePurgeDryRunByTagHostPrefix(t *testing.T) {
 			if err := json.Unmarshal([]byte(stdout), &dump); err != nil {
 				t.Fatal(err)
 			}
-			assertJSONEqual(t, dump.Body, tc.want)
+			cacheAssertJSONEqual(t, dump.Body, tc.want)
 		})
 	}
 }
@@ -190,7 +190,7 @@ func TestCachePurgeDryRunByTagHostPrefix(t *testing.T) {
 func TestCachePurgeRequiresMode(t *testing.T) {
 	_, _, err := runCacheCLI(t, "http://example.invalid",
 		"cache", "purge",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 		"--force",
 		"--dry-run",
 	)
@@ -202,7 +202,7 @@ func TestCachePurgeRequiresMode(t *testing.T) {
 func TestCachePurgeRejectsMixedModes(t *testing.T) {
 	_, _, err := runCacheCLI(t, "http://example.invalid",
 		"cache", "purge",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 		"--everything",
 		"--tag", "x",
 		"--force",
@@ -221,7 +221,7 @@ func TestCachePurgeRequiresForceWithoutTTY(t *testing.T) {
 
 	_, _, err := runCacheCLI(t, srv.URL,
 		"cache", "purge",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 		"--everything",
 	)
 	if err == nil || !strings.Contains(err.Error(), "--force") {
@@ -243,7 +243,7 @@ func TestCachePurgeHTTPRequest(t *testing.T) {
 
 	stdout, _, err := runCacheCLI(t, srv.URL,
 		"cache", "purge",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 		"--tag", "product",
 		"--tag", "images",
 		"--force",
@@ -254,10 +254,10 @@ func TestCachePurgeHTTPRequest(t *testing.T) {
 	if gotMethod != "POST" {
 		t.Errorf("method = %s", gotMethod)
 	}
-	if gotPath != "/zones/"+testZoneID+"/purge_cache" {
+	if gotPath != "/zones/"+cacheTestZoneID+"/purge_cache" {
 		t.Errorf("path = %s", gotPath)
 	}
-	assertJSONEqual(t, gotBody, `{"tags":["product","images"]}`)
+	cacheAssertJSONEqual(t, gotBody, `{"tags":["product","images"]}`)
 	if !strings.Contains(stdout, "purge-1") {
 		t.Errorf("stdout = %s", stdout)
 	}
@@ -275,7 +275,7 @@ func TestCacheSmartTieredGetHTTPRequest(t *testing.T) {
 
 	stdout, _, err := runCacheCLI(t, srv.URL,
 		"cache", "smart-tiered", "get",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -283,7 +283,7 @@ func TestCacheSmartTieredGetHTTPRequest(t *testing.T) {
 	if gotMethod != "GET" {
 		t.Errorf("method = %s", gotMethod)
 	}
-	if gotPath != "/zones/"+testZoneID+"/cache/tiered_cache_smart_topology_enable" {
+	if gotPath != "/zones/"+cacheTestZoneID+"/cache/tiered_cache_smart_topology_enable" {
 		t.Errorf("path = %s", gotPath)
 	}
 	if !strings.Contains(stdout, `"value"`) {
@@ -294,7 +294,7 @@ func TestCacheSmartTieredGetHTTPRequest(t *testing.T) {
 func TestCacheSmartTieredGetDryRun(t *testing.T) {
 	stdout, _, err := runCacheCLI(t, "http://example.invalid",
 		"cache", "smart-tiered", "get",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 		"--dry-run",
 	)
 	if err != nil {
@@ -310,7 +310,7 @@ func TestCacheSmartTieredGetDryRun(t *testing.T) {
 	if dump.Method != "GET" {
 		t.Errorf("method = %s", dump.Method)
 	}
-	if !strings.HasSuffix(dump.URL, "/zones/"+testZoneID+"/cache/tiered_cache_smart_topology_enable") {
+	if !strings.HasSuffix(dump.URL, "/zones/"+cacheTestZoneID+"/cache/tiered_cache_smart_topology_enable") {
 		t.Errorf("url = %s", dump.URL)
 	}
 }
@@ -329,7 +329,7 @@ func TestCacheSmartTieredSetHTTPRequest(t *testing.T) {
 
 	stdout, _, err := runCacheCLI(t, srv.URL,
 		"cache", "smart-tiered", "set",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 		"--value", "on",
 	)
 	if err != nil {
@@ -338,10 +338,10 @@ func TestCacheSmartTieredSetHTTPRequest(t *testing.T) {
 	if gotMethod != "PATCH" {
 		t.Errorf("method = %s", gotMethod)
 	}
-	if gotPath != "/zones/"+testZoneID+"/cache/tiered_cache_smart_topology_enable" {
+	if gotPath != "/zones/"+cacheTestZoneID+"/cache/tiered_cache_smart_topology_enable" {
 		t.Errorf("path = %s", gotPath)
 	}
-	assertJSONEqual(t, gotBody, `{"value":"on"}`)
+	cacheAssertJSONEqual(t, gotBody, `{"value":"on"}`)
 	if !strings.Contains(stdout, "on") {
 		t.Errorf("stdout = %s", stdout)
 	}
@@ -350,7 +350,7 @@ func TestCacheSmartTieredSetHTTPRequest(t *testing.T) {
 func TestCacheSmartTieredSetDryRunOff(t *testing.T) {
 	stdout, _, err := runCacheCLI(t, "http://example.invalid",
 		"cache", "smart-tiered", "set",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 		"--value", "off",
 		"--dry-run",
 	)
@@ -368,16 +368,16 @@ func TestCacheSmartTieredSetDryRunOff(t *testing.T) {
 	if dump.Method != "PATCH" {
 		t.Errorf("method = %s", dump.Method)
 	}
-	if !strings.HasSuffix(dump.URL, "/zones/"+testZoneID+"/cache/tiered_cache_smart_topology_enable") {
+	if !strings.HasSuffix(dump.URL, "/zones/"+cacheTestZoneID+"/cache/tiered_cache_smart_topology_enable") {
 		t.Errorf("url = %s", dump.URL)
 	}
-	assertJSONEqual(t, dump.Body, `{"value":"off"}`)
+	cacheAssertJSONEqual(t, dump.Body, `{"value":"off"}`)
 }
 
 func TestCacheSmartTieredSetInvalidValue(t *testing.T) {
 	_, _, err := runCacheCLI(t, "http://example.invalid",
 		"cache", "smart-tiered", "set",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 		"--value", "maybe",
 		"--dry-run",
 	)
@@ -389,7 +389,7 @@ func TestCacheSmartTieredSetInvalidValue(t *testing.T) {
 func TestCacheSmartTieredSetRequiresValue(t *testing.T) {
 	_, _, err := runCacheCLI(t, "http://example.invalid",
 		"cache", "smart-tiered", "set",
-		"--zone", testZoneID,
+		"--zone", cacheTestZoneID,
 		"--dry-run",
 	)
 	if err == nil {
@@ -411,7 +411,7 @@ func TestCachePurgeResolvesZoneName(t *testing.T) {
 			if r.URL.Query().Get("name") != "example.com" {
 				t.Errorf("lookup name = %q", r.URL.Query().Get("name"))
 			}
-			_, _ = w.Write([]byte(`{"success":true,"result":[{"id":"` + testZoneID + `","name":"example.com"}]}`))
+			_, _ = w.Write([]byte(`{"success":true,"result":[{"id":"` + cacheTestZoneID + `","name":"example.com"}]}`))
 		case r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/purge_cache"):
 			purgePath = r.URL.Path
 			_, _ = w.Write([]byte(`{"success":true,"result":{"id":"ok"}}`))
@@ -433,8 +433,44 @@ func TestCachePurgeResolvesZoneName(t *testing.T) {
 	if !sawZonesLookup {
 		t.Error("expected zone name lookup")
 	}
-	if purgePath != "/zones/"+testZoneID+"/purge_cache" {
+	if purgePath != "/zones/"+cacheTestZoneID+"/purge_cache" {
 		t.Errorf("purge path = %s", purgePath)
+	}
+}
+
+func TestCacheCommandsRejectStrayArgs(t *testing.T) {
+	cases := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "purge",
+			args: []string{"cache", "purge", "extra", "--zone", cacheTestZoneID, "--everything", "--force", "--dry-run"},
+		},
+		{
+			name: "smart-tiered-get",
+			args: []string{"cache", "smart-tiered", "get", "extra", "--zone", cacheTestZoneID, "--dry-run"},
+		},
+		{
+			name: "smart-tiered-set",
+			args: []string{"cache", "smart-tiered", "set", "extra", "--zone", cacheTestZoneID, "--value", "on", "--dry-run"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, err := runCacheCLI(t, "http://example.invalid", tc.args...)
+			if err == nil {
+				t.Fatal("expected error for stray positional args")
+			}
+			msg := err.Error()
+			if !strings.Contains(msg, "unknown command") && !strings.Contains(msg, "accepts no arguments") && !strings.Contains(msg, "unknown arg") {
+				// cobra.NoArgs typically: "unknown command \"extra\" for \"cf cache purge\""
+				// or "accepts no args"
+				if !strings.Contains(strings.ToLower(msg), "arg") && !strings.Contains(msg, "extra") {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			}
+		})
 	}
 }
 
@@ -468,7 +504,7 @@ func TestCacheHelpIncludesExamples(t *testing.T) {
 	}
 }
 
-func assertJSONEqual(t *testing.T, got []byte, want string) {
+func cacheAssertJSONEqual(t *testing.T, got []byte, want string) {
 	t.Helper()
 	var g, w any
 	if err := json.Unmarshal(got, &g); err != nil {
