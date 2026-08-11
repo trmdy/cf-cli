@@ -327,6 +327,10 @@ Re-review verdict: approved at `139dced`.
 - Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
   at `139dced` with GOROOT/GOBIN unset.
 
+Maintainer handoff: approved branch `product/vectorize` was squash-merged as
+`4bb7762`. The clean Vectorize worktree/local branch was removed and implementer
+`CL.9327` retired.
+
 ## Turnstile — `product/turnstile`
 
 Initial verdict: changes required, rework round 1.
@@ -349,6 +353,19 @@ tri-state booleans, confirmations, rendering, and sitekey escaping are sound.
 The diff changes only Turnstile CLI/test plus root registration, with no kernel
 or Wave 1 files. The current-main `Makefile check`, including `fmt-check`, is
 green at `e18250d` with GOROOT/GOBIN unset.
+
+Re-review verdict: approved at `d810930`.
+
+- List filtering now enforces `name:value` or `sitekey:value` before any
+  network call; help and wire-format tests match the API grammar.
+- Create exposes validated immutable `--region world|china`, while update has
+  no region flag and never echoes the server region into its replacement body.
+- Name and domain bounds are checked on create, update flags, and the final
+  merged PUT body, with Unicode and both-boundary tests.
+- The branch remains Turnstile CLI/test plus root registration only; no kernel
+  or Wave 1 path changed.
+- Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
+  at `d810930` with GOROOT/GOBIN unset.
 
 ## Tunnel — `product/tunnel`
 
