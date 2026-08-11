@@ -7,12 +7,18 @@ SPEC := specs/openapi.json
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -X github.com/trmdy/cf-cli/internal/cli.Version=$(VERSION)
 
-.PHONY: all build test vet fmt gen spec lint check clean
+BINDIR ?= $(shell [ -d /opt/homebrew/bin ] && echo /opt/homebrew/bin || echo /usr/local/bin)
+
+.PHONY: all build install test vet fmt gen spec lint check clean
 
 all: build
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o bin/cf ./cmd/cf
+
+install: build
+	install bin/cf $(BINDIR)/cf
+	@echo "installed $(BINDIR)/cf"
 
 spec:
 	mkdir -p specs

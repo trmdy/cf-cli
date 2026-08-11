@@ -26,6 +26,9 @@ type Client struct {
 	Token      string
 	UserAgent  string
 	HTTPClient *http.Client
+	// StreamClient has no overall timeout (large transfers are bounded by
+	// the request context instead) and is used by DoStream only.
+	StreamClient *http.Client
 }
 
 // New builds a client. baseURL may be empty for the default.
@@ -34,10 +37,11 @@ func New(baseURL, token, version string) *Client {
 		baseURL = DefaultBaseURL
 	}
 	return &Client{
-		BaseURL:    strings.TrimRight(baseURL, "/"),
-		Token:      token,
-		UserAgent:  "cf-cli/" + version,
-		HTTPClient: &http.Client{Timeout: 60 * time.Second},
+		BaseURL:      strings.TrimRight(baseURL, "/"),
+		Token:        token,
+		UserAgent:    "cf-cli/" + version,
+		HTTPClient:   &http.Client{Timeout: 60 * time.Second},
+		StreamClient: &http.Client{},
 	}
 }
 
@@ -269,6 +273,63 @@ func (c *Client) DoRaw(ctx context.Context, r Request) (*RawResponse, error) {
 		StatusCode:  resp.StatusCode,
 		ContentType: resp.Header.Get("Content-Type"),
 		Body:        data,
+	}, nil
+}
+
+// StreamedResponse is the result of DoStream. Body is unread; the caller
+// must Close it. ContentLength is -1 when unknown.
+type StreamedResponse struct {
+	StatusCode    int
+	ContentType   string
+	ContentLength int64
+	Body          io.ReadCloser
+}
+
+// DoStream sends a request whose body is streamed from r (which may be nil,
+// in which case req.Body bytes are used if present) and returns the response
+// body unread — for large transfers in either direction (R2 objects, Worker
+// bundles, big KV values). No overall timeout applies; cancel via ctx.
+// Error responses are drained (up to 1 MiB), parsed as envelopes when
+// possible, and returned as *APIError.
+func (c *Client) DoStream(ctx context.Context, req Request, body io.Reader) (*StreamedResponse, error) {
+	u, err := c.buildURL(req)
+	if err != nil {
+		return nil, err
+	}
+	if body == nil && len(req.Body) > 0 {
+		body = bytes.NewReader(req.Body)
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, req.Method, u, body)
+	if err != nil {
+		return nil, err
+	}
+	if c.Token != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+	if body != nil {
+		httpReq.Header.Set("Content-Type", req.contentType())
+	}
+	httpReq.Header.Set("User-Agent", c.UserAgent)
+
+	client := c.StreamClient
+	if client == nil {
+		client = &http.Client{}
+	}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode >= 400 {
+		data, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+		resp.Body.Close()
+		env := parseEnvelope(resp.StatusCode, data)
+		return nil, &APIError{StatusCode: resp.StatusCode, Errors: env.Errors, RawBody: string(data)}
+	}
+	return &StreamedResponse{
+		StatusCode:    resp.StatusCode,
+		ContentType:   resp.Header.Get("Content-Type"),
+		ContentLength: resp.ContentLength,
+		Body:          resp.Body,
 	}, nil
 }
 

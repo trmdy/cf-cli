@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -195,5 +196,57 @@ func TestDumpNonJSONContentType(t *testing.T) {
 	}
 	if string(d.Body) != `"plain text"` {
 		t.Errorf("dump body: %s", d.Body)
+	}
+}
+
+func TestDoStreamUploadAndDownload(t *testing.T) {
+	const chunk = "0123456789abcdef"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" {
+			got, _ := io.ReadAll(r.Body)
+			if len(got) != len(chunk)*1000 {
+				t.Errorf("streamed upload body: got %d bytes", len(got))
+			}
+			if ct := r.Header.Get("Content-Type"); ct != "application/octet-stream" {
+				t.Errorf("Content-Type = %q", ct)
+			}
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		for i := 0; i < 1000; i++ {
+			io.WriteString(w, chunk)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "tok", "test")
+	up := strings.NewReader(strings.Repeat(chunk, 1000))
+	resp, err := c.DoStream(context.Background(), Request{
+		Method: "PUT", Path: "/obj", ContentType: "application/octet-stream",
+	}, up)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil || len(data) != len(chunk)*1000 {
+		t.Fatalf("streamed download: %d bytes, err %v", len(data), err)
+	}
+	if resp.ContentType != "application/octet-stream" {
+		t.Errorf("ContentType = %q", resp.ContentType)
+	}
+}
+
+func TestDoStreamErrorParsesEnvelope(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(413)
+		fmt.Fprint(w, `{"success":false,"errors":[{"code":100100,"message":"object too large"}]}`)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "tok", "test")
+	_, err := c.DoStream(context.Background(), Request{Method: "PUT", Path: "/obj"}, strings.NewReader("x"))
+	apiErr, ok := err.(*APIError)
+	if !ok || apiErr.StatusCode != 413 || !strings.Contains(apiErr.Error(), "object too large") {
+		t.Fatalf("expected enveloped APIError, got %v", err)
 	}
 }

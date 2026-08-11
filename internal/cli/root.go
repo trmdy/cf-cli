@@ -83,6 +83,8 @@ func newRootCmd() *cobra.Command {
 		newVectorizeCmd(g),
 		newTurnstileCmd(g),
 		newTunnelCmd(g),
+		newWorkersCmd(g),
+		newAccessCmd(g),
 	)
 	return cmd
 }
