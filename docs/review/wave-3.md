@@ -114,6 +114,10 @@ nested names. `Client.DoStream` and `Request.ContentType` cover the large and
 non-JSON transfers as required. Targeted uncached tests and `make check` pass.
 Approval buz: `019ff129-6de9-762b-81cb-aab1a97b546a`.
 
+Landed on main as `ea83566`; its clean worktree, local product branch, and Hive
+session were retired. Together with Workers Platform and Workers Dispatch, the
+integrated `cf workers` group contains all three planned sub-shards.
+
 ## SSL Certificates — `product/ssl-certs`
 
 Initial verdict: changes required at `b12cba9`, rework round 1.
