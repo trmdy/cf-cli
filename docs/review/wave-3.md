@@ -86,6 +86,9 @@ exactly one constructor line inside the existing `AddCommand` list. Targeted
 uncached tests and `make check` pass. Approval buz:
 `019ff129-6de7-766d-8d4c-b42f4c9ac7e1`.
 
+Landed on main as `fac68f8`; its clean worktree, local product branch, and Hive
+session were retired.
+
 ## Workers Scripts — `product/workers-scripts`
 
 Initial verdict: changes required at `87eaf43`, rework round 1.
