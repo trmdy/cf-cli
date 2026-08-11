@@ -79,6 +79,24 @@ Initial verdict: changes required at `a10e9fc`, rework round 1.
 - The namespace/script endpoints and `bindings_inherit=strict` query match the
   pinned API. The live upload correctly uses `Client.DoStream`.
 
+## Workers Scripts — `product/workers-scripts`
+
+Initial verdict: changes required at `87eaf43`, rework round 1.
+
+- Blocking boundary violation: `internal/cli/workers.go` currently replaces a
+  scaffold placeholder. It must instead add one constructor line immediately
+  after the existing `AddCommand(` while leaving every comment untouched.
+- Escape the account path component; it is currently interpolated raw unlike
+  every other account-scoped path in the product.
+- Multipart module names are inserted into a hand-built Content-Disposition
+  header after quote/backslash escaping only. Use a standards-aware media-type
+  formatter or reject control characters so CR/LF cannot corrupt a MIME
+  header; retain nested module names and test edge cases.
+- The exact multipart dry-run fixture is strong: it parses the declared
+  boundary and asserts metadata, multiple module bodies, names, and all module
+  MIME types. Live upload uses `DoStream`, content download streams raw bytes,
+  and the remaining endpoints match the pinned API.
+
 ## SSL Certificates — `product/ssl-certs`
 
 Initial verdict: changes required at `b12cba9`, rework round 1.
@@ -112,8 +130,16 @@ and passes targeted uncached tests plus `make check`. Approval buz:
 Initial verdict: changes required at `0c1cd5c`, rework round 1 in progress.
 
 - Rebase onto main `21648e3` and use `resolveZoneInteractive` for all
-  zone-scoped waiting-room commands. Remaining API and validation review is in
-  progress; any additional notes will stay within this review round.
+  zone-scoped waiting-room commands.
+- The first resolver rework passed, but room/event/rule PATCH bodies omit
+  fields marked required by the pinned schemas. Preserve partial CLI updates
+  through GET + raw merge (or an equally safe full replacement), validate the
+  complete post-merge body, and test exact GET-then-write behavior plus unknown
+  field preservation.
+- Rule position `index` currently accepts fractional, zero, and negative JSON
+  numbers; the API defines a one-based integer.
+- Validate the documented no-wildcard/no-query route paths and apply the same
+  no-scheme/no-wildcard host rule to additional routes.
 
 ## Access Apps — `product/access-apps`
 
@@ -125,6 +151,10 @@ Initial verdict: changes required at `b6bc057`, rework round 1 in progress.
 - Its zone scope must rebase onto main `21648e3` and use
   `resolveZoneInteractive`; account scope remains unchanged. Remaining API
   review continues in this round.
+- Pinned-spec comparison shows that name/domain/aud/exact/search are supported
+  only by the account list endpoint. Reject these filters under `--scope zone`
+  before client or zone resolution, and validate scope combinations before
+  constructing a client.
 
 ## Access Identity — `product/access-identity`
 
@@ -132,4 +162,22 @@ Initial verdict: changes required at `8c73a4d`, rework round 1 in progress.
 
 - Blocking boundary violation: `internal/cli/access.go` reindents/deletes
   scaffold comments. Restore the parent file exactly and add only
-  `newAccessIdentityCmd(g)`. Remaining API review continues in this round.
+  `newAccessIdentityCmd(g)`.
+- The corrected commit `7853001` now has the required in-list +1/-0 group diff.
+- Blocking wire error remains: `/access/organizations/revoke_user` defines
+  `devices` in the JSON body beside `email`, but `revoke-sessions` sends it as
+  a query parameter. Move it into the body and test unset, true, and explicit
+  false.
+
+## Web Analytics — `product/web-analytics`
+
+Final verdict: approved at `32ec8df` with no rework.
+
+- Site CRUD, rule CRUD, and bulk rule application paths/methods and request
+  schemas match pinned OpenAPI `4e2f140437b8`.
+- Reviewed enum, host/zone, JSON-array, boolean, confirmation, pagination,
+  table/raw output, dry-run, and API-error behavior. Scope is the two product
+  files plus exactly one root registration.
+- Targeted uncached tests and branch `make check` pass; integrated main
+  `4f3131c` also passes. Approval buz:
+  `019ff121-8c9f-749c-9f61-2bc97a19d6fe`.
