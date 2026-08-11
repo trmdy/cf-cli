@@ -203,6 +203,9 @@ CRUD, read-merge PUT, policy-rule, dry-run, pagination, and output contracts
 match the pinned API. Targeted uncached tests and `make check` pass. Approval
 buz: `019ff129-6dee-71dc-80a2-c760a87d6132`.
 
+Landed on main as `23e21c1`; its clean worktree, local product branch, and Hive
+session were retired.
+
 ## Access Identity — `product/access-identity`
 
 Initial verdict: changes required at `8c73a4d`, rework round 1.
