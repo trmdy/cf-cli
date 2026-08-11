@@ -70,6 +70,7 @@ func newRootCmd() *cobra.Command {
 		newDNSCmd(g),
 		newCacheCmd(g),
 		newZonesCmd(g),
+		newStreamCmd(g),
 	)
 	return cmd
 }
