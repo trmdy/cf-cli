@@ -12,6 +12,7 @@ func newWorkersCmd(g *globalOpts) *cobra.Command {
 		Short: "Manage Cloudflare Workers",
 	}
 	cmd.AddCommand(
+		newWorkersPlatformCmd(g),
 	// sub-shard constructors register here, one line each:
 	// newWorkersScriptsCmd(g),
 	// newWorkersPlatformCmd(g),
