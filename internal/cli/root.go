@@ -68,6 +68,7 @@ func newRootCmd() *cobra.Command {
 		newAuthCmd(g),
 		newAPICmd(g),
 		newDNSCmd(g),
+		newLoadBalancersCmd(g),
 	)
 	return cmd
 }
