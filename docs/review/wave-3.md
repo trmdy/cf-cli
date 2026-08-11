@@ -134,6 +134,9 @@ and the standalone diff is the two product files plus one root registration.
 Targeted uncached tests and `make check` pass. Approval buz:
 `019ff129-6ddd-7329-815e-117fdc9b4559`.
 
+Landed on main as `78d8889`; its clean worktree, local product branch, and Hive
+session were retired.
+
 ## Rulesets — `product/rulesets`
 
 Initial verdict: changes required at `fb4b919`, rework round 1.
