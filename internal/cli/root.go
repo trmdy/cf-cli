@@ -88,6 +88,7 @@ func newRootCmd() *cobra.Command {
 		newWorkersCmd(g),
 		newAccessCmd(g),
 		newSpectrumCmd(g),
+		newWebAnalyticsCmd(g),
 	)
 	return cmd
 }
