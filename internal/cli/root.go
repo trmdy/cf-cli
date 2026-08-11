@@ -78,6 +78,7 @@ func newRootCmd() *cobra.Command {
 		newPagesCmd(g),
 		newImagesCmd(g),
 		newR2Cmd(g),
+		newLogpushCmd(g),
 	)
 	return cmd
 }
