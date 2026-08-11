@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/trmdy/cf-cli/internal/config"
 )
 
 const streamTestAccountID = "a1b2c3d4e5f6789012345678abcdef01"
@@ -92,6 +94,15 @@ func TestBuildStreamDirectUploadBodyValidation(t *testing.T) {
 	if _, err := buildStreamDirectUploadBody(streamDirectUploadOpts{MaxDurationSeconds: -2}); err == nil {
 		t.Fatal("expected error for invalid max duration")
 	}
+	if _, err := buildStreamDirectUploadBody(streamDirectUploadOpts{MaxDurationSeconds: 36001}); err == nil || !strings.Contains(err.Error(), "36000") {
+		t.Fatalf("expected max 36000 error, got %v", err)
+	}
+	// Boundary: exactly 36000 is allowed.
+	body, err := buildStreamDirectUploadBody(streamDirectUploadOpts{MaxDurationSeconds: 36000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	streamAssertJSONEqual(t, body, `{"maxDurationSeconds":36000}`)
 	if _, err := buildStreamDirectUploadBody(streamDirectUploadOpts{
 		MaxDurationSeconds: 60,
 		Expiry:             "not-a-date",
@@ -112,7 +123,7 @@ func TestBuildStreamDirectUploadBodyValidation(t *testing.T) {
 		t.Fatalf("expected allowed-origin error, got %v", err)
 	}
 	// -1 (unknown) is allowed by the API.
-	body, err := buildStreamDirectUploadBody(streamDirectUploadOpts{MaxDurationSeconds: -1})
+	body, err = buildStreamDirectUploadBody(streamDirectUploadOpts{MaxDurationSeconds: -1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,33 +154,129 @@ func TestBuildStreamTokenBodyExpiresIn(t *testing.T) {
 }
 
 func TestBuildStreamTokenBodyExpAndDownloadable(t *testing.T) {
+	now := time.Date(2026, 1, 2, 15, 4, 5, 0, time.UTC)
+	exp := now.Add(2 * time.Hour).Unix()
 	body, err := buildStreamTokenBody(streamTokenOpts{
-		Exp:             1735689600,
+		Exp:             exp,
 		ExpSet:          true,
 		Downloadable:    true,
 		DownloadableSet: true,
+		Now:             now,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	streamAssertJSONEqual(t, body, `{"exp":1735689600,"downloadable":true}`)
+	streamAssertJSONEqual(t, body, `{"exp":`+strconv.FormatInt(exp, 10)+`,"downloadable":true}`)
 }
 
 func TestBuildStreamTokenBodyValidation(t *testing.T) {
-	if _, err := buildStreamTokenBody(streamTokenOpts{ExpSet: true, Exp: 1, ExpiresIn: "1h"}); err == nil || !strings.Contains(err.Error(), "only one") {
+	now := time.Date(2026, 1, 2, 15, 4, 5, 0, time.UTC)
+	if _, err := buildStreamTokenBody(streamTokenOpts{ExpSet: true, Exp: 1, ExpiresIn: "1h", Now: now}); err == nil || !strings.Contains(err.Error(), "only one") {
 		t.Fatalf("expected mutual exclusion error, got %v", err)
 	}
-	if _, err := buildStreamTokenBody(streamTokenOpts{ExpiresIn: "not-a-duration"}); err == nil {
+	if _, err := buildStreamTokenBody(streamTokenOpts{ExpiresIn: "not-a-duration", Now: now}); err == nil {
 		t.Fatal("expected duration parse error")
 	}
-	if _, err := buildStreamTokenBody(streamTokenOpts{ExpiresIn: "0s"}); err == nil || !strings.Contains(err.Error(), "positive") {
+	if _, err := buildStreamTokenBody(streamTokenOpts{ExpiresIn: "0s", Now: now}); err == nil || !strings.Contains(err.Error(), "positive") {
 		t.Fatalf("expected positive duration error, got %v", err)
 	}
-	if _, err := buildStreamTokenBody(streamTokenOpts{ExpiresIn: "48h"}); err == nil || !strings.Contains(err.Error(), "24h") {
+	if _, err := buildStreamTokenBody(streamTokenOpts{ExpiresIn: "48h", Now: now}); err == nil || !strings.Contains(err.Error(), "24h") {
 		t.Fatalf("expected 24h limit error, got %v", err)
 	}
-	if _, err := buildStreamTokenBody(streamTokenOpts{ExpSet: true, Exp: 0}); err == nil {
-		t.Fatal("expected positive exp error")
+	// Past / not future.
+	if _, err := buildStreamTokenBody(streamTokenOpts{ExpSet: true, Exp: now.Unix(), Now: now}); err == nil || !strings.Contains(err.Error(), "future") {
+		t.Fatalf("expected future exp error for now, got %v", err)
+	}
+	if _, err := buildStreamTokenBody(streamTokenOpts{ExpSet: true, Exp: now.Add(-time.Minute).Unix(), Now: now}); err == nil || !strings.Contains(err.Error(), "future") {
+		t.Fatalf("expected future exp error for past, got %v", err)
+	}
+	// Beyond 24h.
+	if _, err := buildStreamTokenBody(streamTokenOpts{ExpSet: true, Exp: now.Add(24*time.Hour + time.Second).Unix(), Now: now}); err == nil || !strings.Contains(err.Error(), "24h") {
+		t.Fatalf("expected 24h exp error, got %v", err)
+	}
+	// Boundary: exactly now+24h is allowed.
+	expMax := now.Add(24 * time.Hour).Unix()
+	body, err := buildStreamTokenBody(streamTokenOpts{ExpSet: true, Exp: expMax, Now: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	streamAssertJSONEqual(t, body, `{"exp":`+strconv.FormatInt(expMax, 10)+`}`)
+	// Boundary: 1s after now is allowed.
+	expMin := now.Add(time.Second).Unix()
+	body, err = buildStreamTokenBody(streamTokenOpts{ExpSet: true, Exp: expMin, Now: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	streamAssertJSONEqual(t, body, `{"exp":`+strconv.FormatInt(expMin, 10)+`}`)
+}
+
+func TestBuildStreamListQuery(t *testing.T) {
+	q, err := buildStreamListQuery(streamListOpts{
+		Search:  "promo",
+		Status:  "ready",
+		Type:    "vod",
+		Creator: "c1",
+		Name:    "clip.mp4",
+		After:   "2026-01-01T00:00:00Z",
+		Before:  "2026-02-01T00:00:00Z",
+		Limit:   50,
+		LimitSet: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.Get("search") != "promo" || q.Get("status") != "ready" || q.Get("type") != "vod" {
+		t.Errorf("filters = %v", q)
+	}
+	if q.Get("creator") != "c1" || q.Get("video_name") != "clip.mp4" {
+		t.Errorf("name/creator = %v", q)
+	}
+	if q.Get("after") != "2026-01-01T00:00:00Z" || q.Get("before") != "2026-02-01T00:00:00Z" {
+		t.Errorf("window = %v", q)
+	}
+	if q.Get("limit") != "50" {
+		t.Errorf("limit = %s", q.Get("limit"))
+	}
+
+	// Default limit when unset.
+	q, err = buildStreamListQuery(streamListOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.Get("limit") != "1000" {
+		t.Errorf("default limit = %s", q.Get("limit"))
+	}
+
+	if _, err := buildStreamListQuery(streamListOpts{Limit: 0, LimitSet: true}); err == nil {
+		t.Fatal("expected limit validation error")
+	}
+	if _, err := buildStreamListQuery(streamListOpts{Limit: 1001, LimitSet: true}); err == nil {
+		t.Fatal("expected limit max error")
+	}
+	if _, err := buildStreamListQuery(streamListOpts{After: "nope"}); err == nil {
+		t.Fatal("expected after format error")
+	}
+	if _, err := buildStreamListQuery(streamListOpts{Before: "nope"}); err == nil {
+		t.Fatal("expected before format error")
+	}
+	if _, err := buildStreamListQuery(streamListOpts{
+		After:  "2026-02-01T00:00:00Z",
+		Before: "2026-01-01T00:00:00Z",
+	}); err == nil || !strings.Contains(err.Error(), "earlier") {
+		t.Fatalf("expected after<before error, got %v", err)
+	}
+}
+
+func TestRequireStreamAccountID(t *testing.T) {
+	id, err := requireStreamAccountID(config.Resolved{AccountID: streamTestAccountID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if id != streamTestAccountID {
+		t.Errorf("id = %s", id)
+	}
+	if _, err := requireStreamAccountID(config.Resolved{}); err == nil || !strings.Contains(err.Error(), "account ID") {
+		t.Fatalf("expected missing account error, got %v", err)
 	}
 }
 
@@ -182,6 +289,8 @@ func TestStreamListDryRun(t *testing.T) {
 		"--name", "clip.mp4",
 		"--creator", "c1",
 		"--limit", "50",
+		"--after", "2026-01-01T00:00:00Z",
+		"--before", "2026-02-01T00:00:00Z",
 		"--dry-run",
 	)
 	if err != nil {
@@ -198,10 +307,28 @@ func TestStreamListDryRun(t *testing.T) {
 	if !strings.Contains(u, "/accounts/"+streamTestAccountID+"/stream") {
 		t.Errorf("url = %s", u)
 	}
-	for _, want := range []string{"status=ready", "search=promo", "type=vod", "video_name=clip.mp4", "creator=c1", "limit=50"} {
+	for _, want := range []string{
+		"status=ready", "search=promo", "type=vod", "video_name=clip.mp4",
+		"creator=c1", "limit=50", "after=2026-01-01T00%3A00%3A00Z", "before=2026-02-01T00%3A00%3A00Z",
+	} {
 		if !strings.Contains(u, want) {
 			t.Errorf("url missing %q: %s", want, u)
 		}
+	}
+}
+
+func TestStreamListDefaultLimitDryRun(t *testing.T) {
+	stdout, _, err := runStreamCLI(t, "http://example.invalid", "stream", "list", "--dry-run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var dump map[string]any
+	if err := json.Unmarshal([]byte(stdout), &dump); err != nil {
+		t.Fatal(err)
+	}
+	u, _ := dump["url"].(string)
+	if !strings.Contains(u, "limit=1000") {
+		t.Errorf("expected default limit=1000 in %s", u)
 	}
 }
 

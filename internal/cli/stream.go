@@ -50,7 +50,9 @@ func newStreamCmd(g *globalOpts) *cobra.Command {
 	return cmd
 }
 
-func requireAccountID(cfg config.Resolved) (string, error) {
+// requireStreamAccountID is product-scoped so it does not collide with other
+// porcelain packages that need the same check under a different name.
+func requireStreamAccountID(cfg config.Resolved) (string, error) {
 	if cfg.AccountID == "" {
 		return "", errors.New("missing account ID: pass --account-id, set CLOUDFLARE_ACCOUNT_ID, or configure a profile")
 	}
@@ -73,51 +75,58 @@ func streamTokenPath(accountID, videoID string) string {
 	return streamVideoPath(accountID, videoID) + "/token"
 }
 
+// streamListMax is the Stream list API hard cap per request.
+const streamListMax = 1000
+
+// streamMaxDurationSecondsMax is the documented API maximum for maxDurationSeconds.
+const streamMaxDurationSecondsMax = 36000
+
+// streamTokenMaxLifetime is the Stream signed-token maximum lifetime.
+const streamTokenMaxLifetime = 24 * time.Hour
+
 func newStreamListCmd(g *globalOpts) *cobra.Command {
-	var search, status, vtype, creator, name string
+	var search, status, vtype, creator, name, after, before string
 	var limit int
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List Stream videos",
 		Long: `List videos in the account Stream library.
 
+Stream returns at most 1000 videos per request and does not expose standard
+page/cursor result_info, so this command issues a single request (no silent
+auto-pagination). For libraries larger than 1000 videos, window the results
+with --after / --before (RFC 3339 creation-time bounds) and --limit.
+
 Examples:
 
   cf stream list
   cf stream list --status ready
   cf stream list --search promo --type vod
-  cf stream list --name video12345.mp4`,
+  cf stream list --name video12345.mp4
+  cf stream list --after 2026-01-01T00:00:00Z --before 2026-02-01T00:00:00Z --limit 100`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, cfg, err := g.client(true)
 			if err != nil {
 				return err
 			}
-			accountID, err := requireAccountID(cfg)
+			accountID, err := requireStreamAccountID(cfg)
 			if err != nil {
 				return err
 			}
-			q := url.Values{}
-			if search != "" {
-				q.Set("search", search)
-			}
-			if status != "" {
-				q.Set("status", status)
-			}
-			if vtype != "" {
-				q.Set("type", vtype)
-			}
-			if creator != "" {
-				q.Set("creator", creator)
-			}
-			if name != "" {
-				q.Set("video_name", name)
-			}
-			if cmd.Flags().Changed("limit") {
-				if limit < 1 || limit > 1000 {
-					return errors.New("--limit must be between 1 and 1000")
-				}
-				q.Set("limit", strconv.Itoa(limit))
+			q, err := buildStreamListQuery(streamListOpts{
+				Search:      search,
+				Status:      status,
+				Type:        vtype,
+				Creator:     creator,
+				Name:        name,
+				After:       after,
+				Before:      before,
+				Limit:       limit,
+				LimitSet:    cmd.Flags().Changed("limit"),
+			})
+			if err != nil {
+				return err
 			}
 			req := api.Request{Method: "GET", Path: streamVideosPath(accountID), Query: q}
 			if g.DryRun {
@@ -127,7 +136,8 @@ Examples:
 				}
 				return g.renderValue(cmd, dump, output.JSON)
 			}
-			env, err := client.DoAutoPaginate(cmd.Context(), req)
+			// Single request: Stream list has no result_info cursors for DoAutoPaginate.
+			env, err := client.Do(cmd.Context(), req)
 			if err != nil {
 				return err
 			}
@@ -161,8 +171,76 @@ Examples:
 	cmd.Flags().StringVar(&vtype, "type", "", "filter by type: vod or live")
 	cmd.Flags().StringVar(&creator, "creator", "", "filter by creator ID")
 	cmd.Flags().StringVar(&name, "name", "", "exact match on meta.name")
-	cmd.Flags().IntVar(&limit, "limit", 0, "maximum videos to return (1-1000)")
+	cmd.Flags().StringVar(&after, "after", "", "only videos created after this RFC 3339 timestamp")
+	cmd.Flags().StringVar(&before, "before", "", "only videos created before this RFC 3339 timestamp")
+	cmd.Flags().IntVar(&limit, "limit", streamListMax, "maximum videos to return (1-1000; Stream API cap)")
 	return cmd
+}
+
+type streamListOpts struct {
+	Search   string
+	Status   string
+	Type     string
+	Creator  string
+	Name     string
+	After    string
+	Before   string
+	Limit    int
+	LimitSet bool
+}
+
+// buildStreamListQuery validates list flags and builds the Stream list query.
+// Always sets limit so callers see the explicit per-request cap.
+func buildStreamListQuery(o streamListOpts) (url.Values, error) {
+	limit := o.Limit
+	if !o.LimitSet && limit == 0 {
+		limit = streamListMax
+	}
+	if limit < 1 || limit > streamListMax {
+		return nil, fmt.Errorf("--limit must be between 1 and %d (Stream API maximum per request)", streamListMax)
+	}
+	if o.After != "" {
+		if _, err := time.Parse(time.RFC3339, o.After); err != nil {
+			return nil, fmt.Errorf("--after must be RFC 3339 (e.g. 2026-01-01T00:00:00Z): %w", err)
+		}
+	}
+	if o.Before != "" {
+		if _, err := time.Parse(time.RFC3339, o.Before); err != nil {
+			return nil, fmt.Errorf("--before must be RFC 3339 (e.g. 2026-02-01T00:00:00Z): %w", err)
+		}
+	}
+	if o.After != "" && o.Before != "" {
+		a, _ := time.Parse(time.RFC3339, o.After)
+		b, _ := time.Parse(time.RFC3339, o.Before)
+		if !a.Before(b) {
+			return nil, errors.New("--after must be earlier than --before")
+		}
+	}
+
+	q := url.Values{}
+	if o.Search != "" {
+		q.Set("search", o.Search)
+	}
+	if o.Status != "" {
+		q.Set("status", o.Status)
+	}
+	if o.Type != "" {
+		q.Set("type", o.Type)
+	}
+	if o.Creator != "" {
+		q.Set("creator", o.Creator)
+	}
+	if o.Name != "" {
+		q.Set("video_name", o.Name)
+	}
+	if o.After != "" {
+		q.Set("after", o.After)
+	}
+	if o.Before != "" {
+		q.Set("before", o.Before)
+	}
+	q.Set("limit", strconv.Itoa(limit))
+	return q, nil
 }
 
 func streamVideoName(v streamVideo) string {
@@ -217,7 +295,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			accountID, err := requireAccountID(cfg)
+			accountID, err := requireStreamAccountID(cfg)
 			if err != nil {
 				return err
 			}
@@ -244,7 +322,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			accountID, err := requireAccountID(cfg)
+			accountID, err := requireStreamAccountID(cfg)
 			if err != nil {
 				return err
 			}
@@ -302,7 +380,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			accountID, err := requireAccountID(cfg)
+			accountID, err := requireStreamAccountID(cfg)
 			if err != nil {
 				return err
 			}
@@ -310,7 +388,7 @@ Examples:
 			return runStreamRequest(cmd, g, client, req)
 		},
 	}
-	cmd.Flags().IntVar(&maxDurationSeconds, "max-duration-seconds", 0, "maximum accepted video duration in seconds (required)")
+	cmd.Flags().IntVar(&maxDurationSeconds, "max-duration-seconds", 0, "maximum accepted video duration in seconds (required; 1-36000, or -1 if unknown)")
 	cmd.Flags().StringVar(&expiry, "expiry", "", "RFC 3339 time after which the upload URL rejects uploads")
 	cmd.Flags().StringVar(&creator, "creator", "", "user-defined creator ID stored on the video")
 	cmd.Flags().StringVar(&name, "name", "", "store as meta.name on the resulting video")
@@ -340,9 +418,9 @@ type streamDirectUploadOpts struct {
 // buildStreamDirectUploadBody validates flags and builds the JSON body for
 // POST /accounts/{account_id}/stream/direct_upload.
 func buildStreamDirectUploadBody(o streamDirectUploadOpts) ([]byte, error) {
-	// 0 is invalid for storage reservation; only -1 (unknown) or >0 allowed.
-	if o.MaxDurationSeconds != -1 && o.MaxDurationSeconds < 1 {
-		return nil, errors.New("--max-duration-seconds is required (positive seconds, or -1 if unknown)")
+	// 0 is invalid for storage reservation; only -1 (unknown) or 1..36000 allowed.
+	if o.MaxDurationSeconds != -1 && (o.MaxDurationSeconds < 1 || o.MaxDurationSeconds > streamMaxDurationSecondsMax) {
+		return nil, fmt.Errorf("--max-duration-seconds must be -1 or between 1 and %d", streamMaxDurationSecondsMax)
 	}
 	if o.Expiry != "" {
 		if _, err := time.Parse(time.RFC3339, o.Expiry); err != nil {
@@ -425,7 +503,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			accountID, err := requireAccountID(cfg)
+			accountID, err := requireStreamAccountID(cfg)
 			if err != nil {
 				return err
 			}
@@ -433,8 +511,8 @@ Examples:
 			return runStreamRequest(cmd, g, client, req)
 		},
 	}
-	cmd.Flags().Int64Var(&exp, "exp", 0, "unix epoch timestamp after which the token is rejected (max 24h from issue)")
-	cmd.Flags().StringVar(&expiresIn, "expires-in", "", "token lifetime from now (e.g. 30m, 1h); mutually exclusive with --exp")
+	cmd.Flags().Int64Var(&exp, "exp", 0, "unix epoch after which the token is rejected (must be in the future, max 24h from now)")
+	cmd.Flags().StringVar(&expiresIn, "expires-in", "", "token lifetime from now (e.g. 30m, 1h; max 24h); mutually exclusive with --exp")
 	cmd.Flags().BoolVar(&downloadable, "downloadable", false, "allow the token to access MP4 download links")
 	return cmd
 }
@@ -455,6 +533,12 @@ func buildStreamTokenBody(o streamTokenOpts) ([]byte, error) {
 	if o.ExpSet && o.ExpiresIn != "" {
 		return nil, errors.New("specify only one of --exp or --expires-in")
 	}
+	now := o.Now
+	if now.IsZero() {
+		now = time.Now()
+	}
+	maxExp := now.Add(streamTokenMaxLifetime).Unix()
+
 	body := map[string]any{}
 	if o.ExpiresIn != "" {
 		d, err := time.ParseDuration(o.ExpiresIn)
@@ -464,18 +548,14 @@ func buildStreamTokenBody(o streamTokenOpts) ([]byte, error) {
 		if d <= 0 {
 			return nil, errors.New("--expires-in must be a positive duration")
 		}
-		if d > 24*time.Hour {
+		if d > streamTokenMaxLifetime {
 			return nil, errors.New("--expires-in cannot exceed 24h (Stream token limit)")
-		}
-		now := o.Now
-		if now.IsZero() {
-			now = time.Now()
 		}
 		body["exp"] = now.Add(d).Unix()
 	}
 	if o.ExpSet {
-		if o.Exp <= 0 {
-			return nil, errors.New("--exp must be a positive unix timestamp")
+		if err := validateStreamTokenExp(o.Exp, now, maxExp); err != nil {
+			return nil, err
 		}
 		body["exp"] = o.Exp
 	}
@@ -487,6 +567,18 @@ func buildStreamTokenBody(o streamTokenOpts) ([]byte, error) {
 		return nil, nil
 	}
 	return json.Marshal(body)
+}
+
+// validateStreamTokenExp ensures --exp is strictly after now and within the
+// Stream 24h issuance window (inclusive of the max boundary).
+func validateStreamTokenExp(exp int64, now time.Time, maxExp int64) error {
+	if exp <= now.Unix() {
+		return errors.New("--exp must be a unix timestamp in the future")
+	}
+	if exp > maxExp {
+		return errors.New("--exp cannot be more than 24h from now (Stream token limit)")
+	}
+	return nil
 }
 
 func runStreamRequest(cmd *cobra.Command, g *globalOpts, client *api.Client, req api.Request) error {
