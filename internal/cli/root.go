@@ -86,6 +86,7 @@ func newRootCmd() *cobra.Command {
 		newTunnelCmd(g),
 		newWorkersCmd(g),
 		newAccessCmd(g),
+		newSpectrumCmd(g),
 	)
 	return cmd
 }
