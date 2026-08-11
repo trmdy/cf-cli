@@ -75,6 +75,7 @@ func newRootCmd() *cobra.Command {
 		newQueuesCmd(g),
 		newHyperdriveCmd(g),
 		newD1Cmd(g),
+		newPagesCmd(g),
 	)
 	return cmd
 }
