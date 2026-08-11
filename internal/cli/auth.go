@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"strings"
 
@@ -25,26 +27,56 @@ func newAuthCmd(g *globalOpts) *cobra.Command {
 
 func newAuthLoginCmd(g *globalOpts) *cobra.Command {
 	var accountID, zoneID string
-	var setDefault bool
+	var setDefault, noVerify bool
 	cmd := &cobra.Command{
 		Use:   "login",
-		Short: "Save an API token to a profile",
-		Long:  "Saves a Cloudflare API token (and optional default account/zone) to the\nconfig file. Pass the token with --token or pipe it on stdin:\n\n  echo $MY_TOKEN | cf auth login\n  cf auth login --token <token> --profile work",
+		Short: "Log in with an API token (interactive on a terminal)",
+		Long: `Log in to Cloudflare with an API token and save it to a profile.
+
+On a terminal with no token supplied, login is interactive: it prompts for
+the token (input hidden), verifies it against the API, and offers to pick a
+default account and zone. Non-interactive forms:
+
+  echo $MY_TOKEN | cf auth login
+  cf auth login --token <token> --profile work
+  cf auth login --token <token> --set-account-id <id> --set-zone-id <id>
+
+Create tokens at https://dash.cloudflare.com/profile/api-tokens`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			token := g.Token
+			interactive := false
 			if token == "" {
 				st, _ := os.Stdin.Stat()
-				if st != nil && st.Mode()&os.ModeCharDevice == 0 {
+				switch {
+				case st != nil && st.Mode()&os.ModeCharDevice == 0:
 					data, err := io.ReadAll(cmd.InOrStdin())
 					if err != nil {
 						return err
 					}
 					token = strings.TrimSpace(string(data))
+				case stdinIsTTY():
+					interactive = true
+					p := newPrompter()
+					fmt.Fprintln(os.Stderr, "Create an API token at https://dash.cloudflare.com/profile/api-tokens")
+					var err error
+					token, err = p.askSecret("Paste your API token (input hidden): ")
+					if err != nil {
+						return err
+					}
 				}
 			}
 			if token == "" {
-				return errors.New("no token provided: pass --token or pipe it on stdin")
+				return errors.New("no token provided: pass --token, pipe it on stdin, or run on a terminal for interactive login")
 			}
+
+			client := api.New(g.BaseURL, token, Version)
+			if !noVerify {
+				if _, err := client.Do(cmd.Context(), api.Request{Method: "GET", Path: "/user/tokens/verify"}); err != nil {
+					return fmt.Errorf("token verification failed: %w (pass --no-verify to save anyway)", err)
+				}
+				fmt.Fprintln(cmd.ErrOrStderr(), "Token verified.")
+			}
+
 			f, err := config.Load()
 			if err != nil {
 				return err
@@ -64,6 +96,25 @@ func newAuthLoginCmd(g *globalOpts) *cobra.Command {
 			if zoneID != "" {
 				p.ZoneID = zoneID
 			}
+
+			if interactive {
+				pr := newPrompter()
+				if p.AccountID == "" {
+					if id, label, err := pickAccount(cmd, client, pr); err == nil && id != "" {
+						p.AccountID = id
+						fmt.Fprintf(cmd.ErrOrStderr(), "Default account: %s\n", label)
+					}
+				}
+				if p.ZoneID == "" {
+					if yes, _ := pr.confirmYN("Set a default zone?"); yes {
+						if id, label, err := pickZone(cmd, client, pr, p.AccountID); err == nil && id != "" {
+							p.ZoneID = id
+							fmt.Fprintf(cmd.ErrOrStderr(), "Default zone: %s\n", label)
+						}
+					}
+				}
+			}
+
 			f.Profiles[name] = p
 			if setDefault || f.DefaultProfile == "" {
 				f.DefaultProfile = name
@@ -71,14 +122,79 @@ func newAuthLoginCmd(g *globalOpts) *cobra.Command {
 			if err := config.Save(f); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Saved token to profile %q in %s\n", name, config.Path())
+			fmt.Fprintf(cmd.OutOrStdout(), "Saved profile %q in %s\n", name, config.Path())
 			return nil
 		},
 	}
 	cmd.Flags().StringVar(&accountID, "set-account-id", "", "also store a default account ID in the profile")
 	cmd.Flags().StringVar(&zoneID, "set-zone-id", "", "also store a default zone ID in the profile")
 	cmd.Flags().BoolVar(&setDefault, "default", false, "make this profile the default")
+	cmd.Flags().BoolVar(&noVerify, "no-verify", false, "skip token verification against the API")
 	return cmd
+}
+
+type idName struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// pickAccount lists the token's accounts and returns the chosen (or only)
+// account ID. Empty on skip or when listing is not permitted by the token.
+func pickAccount(cmd *cobra.Command, client *api.Client, pr *prompter) (string, string, error) {
+	q := url.Values{}
+	q.Set("per_page", "50")
+	env, err := client.DoAutoPaginate(cmd.Context(), api.Request{Method: "GET", Path: "/accounts", Query: q})
+	if err != nil {
+		fmt.Fprintln(cmd.ErrOrStderr(), "note: could not list accounts with this token; set one later with `cf profile set`")
+		return "", "", err
+	}
+	var accounts []idName
+	if err := json.Unmarshal(env.Result, &accounts); err != nil || len(accounts) == 0 {
+		return "", "", errors.New("no accounts visible to this token")
+	}
+	if len(accounts) == 1 {
+		return accounts[0].ID, fmt.Sprintf("%s (%s)", accounts[0].Name, accounts[0].ID), nil
+	}
+	opts := make([]string, len(accounts))
+	for i, a := range accounts {
+		opts[i] = fmt.Sprintf("%s (%s)", a.Name, a.ID)
+	}
+	idx, err := pr.selectOption("Which account should be the default?", opts, true)
+	if err != nil || idx < 0 {
+		return "", "", err
+	}
+	return accounts[idx].ID, opts[idx], nil
+}
+
+// pickZone lists zones (scoped to accountID when set) and returns the chosen
+// zone ID. Empty on skip.
+func pickZone(cmd *cobra.Command, client *api.Client, pr *prompter, accountID string) (string, string, error) {
+	q := url.Values{}
+	q.Set("per_page", "50")
+	if accountID != "" {
+		q.Set("account.id", accountID)
+	}
+	env, err := client.DoAutoPaginate(cmd.Context(), api.Request{Method: "GET", Path: "/zones", Query: q})
+	if err != nil {
+		return "", "", err
+	}
+	var zones []idName
+	if err := json.Unmarshal(env.Result, &zones); err != nil || len(zones) == 0 {
+		fmt.Fprintln(cmd.ErrOrStderr(), "note: no zones visible; set one later with `cf profile set`")
+		return "", "", errors.New("no zones")
+	}
+	if len(zones) == 1 {
+		return zones[0].ID, fmt.Sprintf("%s (%s)", zones[0].Name, zones[0].ID), nil
+	}
+	opts := make([]string, len(zones))
+	for i, z := range zones {
+		opts[i] = fmt.Sprintf("%s (%s)", z.Name, z.ID)
+	}
+	idx, err := pr.selectOption("Which zone should be the default?", opts, true)
+	if err != nil || idx < 0 {
+		return "", "", err
+	}
+	return zones[idx].ID, opts[idx], nil
 }
 
 func newAuthLogoutCmd(g *globalOpts) *cobra.Command {

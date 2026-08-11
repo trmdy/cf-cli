@@ -66,6 +66,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(
 		newVersionCmd(),
 		newAuthCmd(g),
+		newProfileCmd(g),
 		newAPICmd(g),
 		newDNSCmd(g),
 		newCacheCmd(g),
