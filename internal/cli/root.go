@@ -73,6 +73,7 @@ func newRootCmd() *cobra.Command {
 		newStreamCmd(g),
 		newKVCmd(g),
 		newQueuesCmd(g),
+		newHyperdriveCmd(g),
 	)
 	return cmd
 }
