@@ -151,7 +151,7 @@ func newLBListCmd(g *globalOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}
@@ -203,7 +203,7 @@ func newLBGetCmd(g *globalOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}
@@ -282,7 +282,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}
@@ -378,7 +378,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}
@@ -412,7 +412,7 @@ func newLBDeleteCmd(g *globalOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}

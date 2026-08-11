@@ -94,7 +94,7 @@ func resolveLogpushPath(cmd *cobra.Command, g *globalOpts, scope logpushScope) (
 		}
 		return client, "/accounts/" + url.PathEscape(cfg.AccountID) + "/logpush", nil
 	case "zone":
-		zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, scope.zone)
+		zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, scope.zone)
 		if err != nil {
 			return nil, "", err
 		}

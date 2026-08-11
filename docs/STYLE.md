@@ -27,10 +27,12 @@ Two layers, never mixed:
 ## Flags
 
 - kebab-case, no abbreviations except established ones (`--ttl`).
-- Zone-scoped porcelain takes `--zone` accepting a zone **name or ID**
-  (resolve names via `resolveZoneID`). Account/zone IDs otherwise come from
-  the global `--account-id`/`--zone-id` flags, env, or profile — never add
-  per-command variants.
+- Zone-scoped porcelain takes `--zone` accepting a zone **name or ID**,
+  resolved via `resolveZoneInteractive` (never `resolveZoneID` directly):
+  it falls back to the configured zone and, on a terminal, to an inline
+  zone picker that can persist the choice to the profile. Account/zone IDs
+  otherwise come from the global `--account-id`/`--zone-id` flags, env, or
+  profile — never add per-command variants.
 - Boolean flags default to false; use `cmd.Flags().Changed(...)` to
   distinguish "unset" from "false" when building PATCH bodies.
 

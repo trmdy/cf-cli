@@ -102,7 +102,7 @@ func newDNSListCmd(g *globalOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}
@@ -166,7 +166,7 @@ func newDNSGetCmd(g *globalOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}
@@ -192,7 +192,7 @@ func newDNSCreateCmd(g *globalOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}
@@ -242,7 +242,7 @@ func newDNSUpdateCmd(g *globalOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}
@@ -302,7 +302,7 @@ func newDNSDeleteCmd(g *globalOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}

@@ -61,7 +61,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}
@@ -181,7 +181,7 @@ func newCacheSmartTieredGetCmd(g *globalOpts) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}
@@ -214,7 +214,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			zoneID, err := resolveZoneID(cmd.Context(), client, cfg.ZoneID, zone)
+			zoneID, err := resolveZoneInteractive(cmd, g, client, cfg, zone)
 			if err != nil {
 				return err
 			}
