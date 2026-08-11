@@ -1,0 +1,56 @@
+name: spec-sync
+
+# Weekly: bump the pinned Cloudflare OpenAPI spec revision, regenerate the
+# registry, and open a PR when anything changed. Contract tests on the PR
+# then prove the new registry matches the new spec.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Bump pinned spec ref
+        id: bump
+        run: |
+          latest=$(curl -s https://api.github.com/repos/cloudflare/api-schemas/commits/main | jq -r '.sha[:12]')
+          current=$(sed -n 's/^SPEC_REF := //p' Makefile)
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ "$latest" = "$current" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            sed -i "s/^SPEC_REF := .*/SPEC_REF := $latest/" Makefile
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Regenerate registry
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          make spec gen
+          go test ./...
+      - name: Open PR
+        if: steps.bump.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet; then
+            echo "spec moved but registry unchanged; committing ref bump only"
+          fi
+          branch="spec-sync/${{ steps.bump.outputs.latest }}"
+          git config user.name "spec-sync"
+          git config user.email "actions@github.com"
+          git checkout -b "$branch"
+          git add Makefile internal/registry/data/registry.json.gz docs/generated/products.md
+          git commit -m "Bump Cloudflare OpenAPI spec to ${{ steps.bump.outputs.latest }}"
+          git push -u origin "$branch"
+          gh pr create --fill --body "Automated spec bump. Review the docs/generated/products.md diff for taxonomy changes (new products may need tools/gen/mapping.yaml overrides)."

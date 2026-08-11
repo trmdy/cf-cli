@@ -1,4 +1,8 @@
-SPEC_URL := https://raw.githubusercontent.com/cloudflare/api-schemas/main/openapi.json
+# Pinned spec revision: bump SPEC_REF deliberately (make spec gen, review
+# docs/generated/products.md diff, commit). The spec-sync workflow opens a PR
+# for this weekly.
+SPEC_REF := 4e2f140437b8
+SPEC_URL := https://raw.githubusercontent.com/cloudflare/api-schemas/$(SPEC_REF)/openapi.json
 SPEC := specs/openapi.json
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -X github.com/trmdy/cf-cli/internal/cli.Version=$(VERSION)

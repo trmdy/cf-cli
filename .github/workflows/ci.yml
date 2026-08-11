@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Format
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - name: Vet
+        run: go vet ./...
+      - name: Download OpenAPI spec
+        run: make spec
+      - name: Contract tests (registry vs spec)
+        run: go test ./...
+      - name: Registry freshness
+        run: |
+          make gen
+          git diff --exit-code internal/registry/data/registry.json.gz docs/generated/products.md \
+            || (echo "::error::embedded registry is stale — run 'make spec gen' and commit" && exit 1)
+      - name: Build
+        run: make build
+      - name: Smoke test
+        run: |
+          ./bin/cf version
+          ./bin/cf api dns-records list --zone-id test --dry-run
+          ./bin/cf api cache purge --zone-id test -f purge_everything=true --dry-run
