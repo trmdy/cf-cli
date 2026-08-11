@@ -13,6 +13,7 @@ func newAccessCmd(g *globalOpts) *cobra.Command {
 	}
 	cmd.AddCommand(
 		newAccessAppsCmd(g),
+		newAccessIdentityCmd(g),
 	// sub-shard constructors register here, one line each:
 	// newAccessAppsCmd(g),
 	// newAccessIdentityCmd(g),
