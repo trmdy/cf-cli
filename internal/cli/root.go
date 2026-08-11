@@ -77,6 +77,7 @@ func newRootCmd() *cobra.Command {
 		newD1Cmd(g),
 		newPagesCmd(g),
 		newImagesCmd(g),
+		newR2Cmd(g),
 	)
 	return cmd
 }
