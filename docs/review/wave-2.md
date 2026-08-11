@@ -419,3 +419,19 @@ Final verdict after round 2: approved at `427b361`.
 - Final scope is Tunnel CLI/test plus root registration only; no kernel or Wave
   1 files changed, `git diff --check` is clean, and the current-main gate
   (including `fmt-check`) passes with GOROOT/GOBIN unset.
+
+Post-merge addendum: cleanup is held pending a maintainer correction.
+
+- Tunnel was squash-merged as `a7d163b` from approved head `427b361`.
+- A delayed delivery of the original review text revealed that the help finding
+  referred to the redundant `config get` example; round 1 had instead removed
+  a redundant `config set` stdin example. The implementer produced local
+  follow-up `f78d0c2`, limited to Tunnel CLI/test, which collapses the config-get
+  examples and explains global `--query` in prose.
+- The discrepancy and follow-up were buzzed to the maintainer as a post-merge
+  blocker. The coordinator did not merge, cherry-pick, push, retire the bee, or
+  remove the branch/worktree.
+
+Maintainer resolution: local follow-up `f78d0c2` was cherry-picked to main as
+`03c10a0`, gated green, and pushed. After that acknowledgement, the clean Tunnel
+worktree/local branch was removed and implementer `CL.b9bf` retired.
