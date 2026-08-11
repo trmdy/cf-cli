@@ -69,6 +69,7 @@ func newRootCmd() *cobra.Command {
 		newAPICmd(g),
 		newDNSCmd(g),
 		newCacheCmd(g),
+		newStreamCmd(g),
 	)
 	return cmd
 }
