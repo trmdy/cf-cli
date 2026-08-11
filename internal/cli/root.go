@@ -90,6 +90,7 @@ func newRootCmd() *cobra.Command {
 		newSpectrumCmd(g),
 		newWebAnalyticsCmd(g),
 		newSSLCertsCmd(g),
+		newWaitingRoomCmd(g),
 	)
 	return cmd
 }
