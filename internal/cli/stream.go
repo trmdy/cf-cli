@@ -115,15 +115,15 @@ Examples:
 				return err
 			}
 			q, err := buildStreamListQuery(streamListOpts{
-				Search:      search,
-				Status:      status,
-				Type:        vtype,
-				Creator:     creator,
-				Name:        name,
-				After:       after,
-				Before:      before,
-				Limit:       limit,
-				LimitSet:    cmd.Flags().Changed("limit"),
+				Search:   search,
+				Status:   status,
+				Type:     vtype,
+				Creator:  creator,
+				Name:     name,
+				After:    after,
+				Before:   before,
+				Limit:    limit,
+				LimitSet: cmd.Flags().Changed("limit"),
 			})
 			if err != nil {
 				return err

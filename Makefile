@@ -34,7 +34,10 @@ fmt:
 lint:
 	go run ./tools/lint
 
-check: vet lint test build
+fmt-check:
+	@test -z "$$(gofmt -l .)" || (echo "gofmt needed on:" && gofmt -l . && exit 1)
+
+check: fmt-check vet lint test build
 
 clean:
 	rm -rf bin

@@ -212,14 +212,14 @@ func TestBuildStreamTokenBodyValidation(t *testing.T) {
 
 func TestBuildStreamListQuery(t *testing.T) {
 	q, err := buildStreamListQuery(streamListOpts{
-		Search:  "promo",
-		Status:  "ready",
-		Type:    "vod",
-		Creator: "c1",
-		Name:    "clip.mp4",
-		After:   "2026-01-01T00:00:00Z",
-		Before:  "2026-02-01T00:00:00Z",
-		Limit:   50,
+		Search:   "promo",
+		Status:   "ready",
+		Type:     "vod",
+		Creator:  "c1",
+		Name:     "clip.mp4",
+		After:    "2026-01-01T00:00:00Z",
+		Before:   "2026-02-01T00:00:00Z",
+		Limit:    50,
 		LimitSet: true,
 	})
 	if err != nil {
