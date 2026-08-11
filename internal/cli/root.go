@@ -80,6 +80,7 @@ func newRootCmd() *cobra.Command {
 		newR2Cmd(g),
 		newLogpushCmd(g),
 		newLoadBalancersCmd(g),
+		newVectorizeCmd(g),
 	)
 	return cmd
 }
