@@ -122,6 +122,10 @@ Re-review verdict: approved at `a6d5764`.
 - Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
   at `a6d5764` with GOROOT/GOBIN unset.
 
+Maintainer handoff: approval buz `019feffd-21af-750d-9a79-1cd1b2df9614`;
+squash-merged as `7b0338f`. The clean Hyperdrive worktree/local branch was
+removed and implementer `CO.d2ed` retired.
+
 ## D1 — `product/d1`
 
 Initial verdict: changes required, rework round 1.
@@ -173,6 +177,20 @@ The initial diff changes only `internal/cli/pages.go`,
 `internal/cli/pages_test.go`, and the root registration; no kernel paths. It
 passed the current-main gate including `fmt-check` at `3b343dd`. Findings were
 sent to `CL.91a` by buz subject `review.rework.round1` and direct message.
+
+Re-review verdict: approved at `adc47a8`.
+
+- The required production branch is trimmed, checked for non-empty input, and
+  always serialized; helper and CLI tests cover explicit empty values and the
+  default `main` body.
+- Create help now accurately identifies Direct Upload project creation and says
+  no Git repository connection is performed.
+- Rollback help and confirmation now state the successful production-deployment
+  constraint.
+- Branch scope remains Pages CLI/test plus root registration, with no prohibited
+  kernel paths.
+- Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
+  at `adc47a8` with GOROOT/GOBIN unset.
 
 ## Images — `product/images`
 
