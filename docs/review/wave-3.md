@@ -45,6 +45,9 @@ unknown-field preservation, and interactive zone resolution. Targeted
 uncached tests and `make check` pass. Approval buz:
 `019ff114-ae25-700d-9394-54f048189b34`.
 
+Landed on main as `376f210`; its clean worktree, local product branch, and Hive
+session were retired.
+
 ## Workers Platform — `product/workers-platform`
 
 Initial verdict: changes required at `146fe76`, rework round 1.
@@ -60,6 +63,9 @@ Initial verdict: changes required at `146fe76`, rework round 1.
 Final verdict: approved at `316f2e9`. The parent-file diff is now exactly one
 added constructor line; targeted uncached tests and `make check` pass. Approval
 buz: `019ff114-c2b6-7336-b34a-5860e8cbfe27`.
+
+Landed on main as `09963ac`; its clean worktree, local product branch, and Hive
+session were retired.
 
 ## Workers Dispatch — `product/workers-dispatch`
 
@@ -159,6 +165,9 @@ the interactive helper for zone scope, retains the correct version semantics,
 and passes targeted uncached tests plus `make check`. Approval buz:
 `019ff114-b7df-73f2-be7d-4f546efd8588`.
 
+Landed on main as `8fa0f6a`; its clean worktree, local product branch, and Hive
+session were retired.
+
 ## Waiting Room — `product/waiting-room`
 
 Initial verdict: changes required at `0c1cd5c`, rework round 1.
@@ -230,6 +239,10 @@ The remaining provider, group, token, and user contracts match the pinned API.
 Targeted uncached tests and `make check` pass. Approval buz:
 `019ff129-6def-73ec-b98b-6e96b6770d97`.
 
+Landed on main as `215e3ee`; its clean worktree, local product branch, and Hive
+session were retired. Together with Access Apps, the integrated `cf access`
+group contains both planned sub-shards.
+
 ## Web Analytics — `product/web-analytics`
 
 Final verdict: approved at `32ec8df` with no rework.
@@ -245,3 +258,10 @@ Final verdict: approved at `32ec8df` with no rework.
 
 Landed on main as `8f02c3d`; its clean worktree, local product branch, and Hive
 session were retired.
+
+## Final wave handoff
+
+All ten shards are landed and cleaned. Fully assembled main `f3afb46` passes
+`env -u GOROOT -u GOBIN make check`; the Wave-2-format retrospective is in
+`docs/orchestration/wave-3-summary.md`. Final summary buz:
+`019ff133-377d-7707-992c-faacf3d7acad`.
