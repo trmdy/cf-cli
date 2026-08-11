@@ -280,6 +280,10 @@ Re-review verdict: approved at `4e11356`.
 - Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
   at `4e11356` with GOROOT/GOBIN unset.
 
+Maintainer handoff: approved branch `product/logpush` was squash-merged as
+`7221223`. The clean Logpush worktree/local branch was removed and implementer
+`CO.ecc5` retired.
+
 ## Vectorize — `product/vectorize`
 
 Initial verdict: changes required, rework round 1.
