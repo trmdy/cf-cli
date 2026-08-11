@@ -1,0 +1,26 @@
+{
+  "wave": 2,
+  "coordinator": {
+    "name": "cf-wave2-coordinator",
+    "bee_id": "CO.9dc4"
+  },
+  "base_commit": "03634b5ee6936a73fe62904431e5b7cb0acd1a16",
+  "baseline": "make check green with GOROOT/GOBIN unset",
+  "assignments": [
+    {"product":"pages","branch":"product/pages","worktree":"/Users/trmd/Projects/trmd/cf-cli/worktrees/pages","harness":"claude opus high","bee":"cf-wave2-pages","bee_id":"CL.91a","state":"active","rework_round":0},
+    {"product":"tunnel","branch":"product/tunnel","worktree":"/Users/trmd/Projects/trmd/cf-cli/worktrees/tunnel","harness":"claude opus high","bee":"cf-wave2-tunnel","bee_id":"CL.b9bf","state":"active","rework_round":0},
+    {"product":"queues","branch":"product/queues","worktree":"/Users/trmd/Projects/trmd/cf-cli/worktrees/queues","harness":"codex gpt-5.6-terra high","bee":"cf-wave2-queues","bee_id":"CO.6517","state":"active","rework_round":0},
+    {"product":"d1","branch":"product/d1","worktree":"/Users/trmd/Projects/trmd/cf-cli/worktrees/d1","harness":"codex gpt-5.6-terra high","bee":"cf-wave2-d1","bee_id":"CO.0350","state":"active","rework_round":0},
+    {"product":"hyperdrive","branch":"product/hyperdrive","worktree":"/Users/trmd/Projects/trmd/cf-cli/worktrees/hyperdrive","harness":"kimi kimi-code/k3 (kimi-default)","bee":"cf-wave2-hyperdrive-kimi","bee_id":"KI.696d","state":"active","rework_round":0},
+    {"product":"vectorize","branch":"product/vectorize","worktree":"/Users/trmd/Projects/trmd/cf-cli/worktrees/vectorize","harness":"kimi kimi-code/k3 (kimi-default)","bee":"cf-wave2-vectorize-kimi","bee_id":"KI.dcf","state":"active","rework_round":0},
+    {"product":"images","branch":"product/images","worktree":"/Users/trmd/Projects/trmd/cf-cli/worktrees/images","harness":"grok","bee":"cf-wave2-images","bee_id":"GR.bb2d","state":"active","rework_round":0},
+    {"product":"stream","branch":"product/stream","worktree":"/Users/trmd/Projects/trmd/cf-cli/worktrees/stream","harness":"grok","bee":"cf-wave2-stream","bee_id":"GR.e41a","state":"active","rework_round":0},
+    {"product":"turnstile","branch":"product/turnstile","worktree":"/Users/trmd/Projects/trmd/cf-cli/worktrees/turnstile","harness":"claude opus high","bee":"cf-wave2-turnstile","bee_id":"CL.3937a","state":"active","rework_round":0},
+    {"product":"logpush","branch":"product/logpush","worktree":"/Users/trmd/Projects/trmd/cf-cli/worktrees/logpush","harness":"codex gpt-5.6-terra high","bee":"cf-wave2-logpush","bee_id":"CO.ecc5","state":"active","rework_round":0}
+  ],
+  "history": [
+    {"products":["hyperdrive","vectorize"],"event":"unbound Kimi spawns crashed before prompting","bees":["KI.5858","KI.ae3f"],"resolution":"retired"},
+    {"products":["hyperdrive","vectorize"],"event":"temporary reassignment spawned but never prompted","bees":["CO.6da1","CL.95c"],"resolution":"retired after maintainer root-cause correction"},
+    {"products":["hyperdrive","vectorize"],"event":"Kimi K3 respawned with --account kimi-default","bees":["KI.696d","KI.dcf"],"resolution":"active"}
+  ]
+}

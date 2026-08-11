@@ -11,31 +11,37 @@ implementers.
   maintainer merges to `main`, and only work a coordinator has approved.
 - **Wave coordinator (one per wave; codex, gpt-5.6-sol, xhigh)** — owns a
   wave of product shards. Spawns implementer bees, assigns exactly one
-  product per bee, reviews their PRs adversarially, drives rework until the
-  shard meets the bar, then approves and hands the PR up to the maintainer.
+  product per bee, reviews their branches adversarially, drives rework until the
+  shard meets the bar, then approves and hands the branch up to the maintainer.
   Coordinators never merge and never push to `main`.
 - **Implementer (one per product; balanced mix of claude opus, codex
   gpt-5.6-terra high, kimi k3, grok)** — implements porcelain for one
   product in its own git worktree on branch `product/<name>`, per
-  `docs/STYLE.md` with `internal/cli/dns.go` as the exemplar. Opens a PR
+  `docs/STYLE.md` with `internal/cli/dns.go` as the exemplar. Hands the branch to review
   when `make check` passes.
 
-## Merge protocol
+## Merge protocol (local branches, NO GitHub PRs)
 
-1. Implementer: worktree + branch `product/<name>` → implement → `make
-   check` green → push → `gh pr create` → seal JSON → buz coordinator.
-2. Coordinator: deep review (correctness, STYLE.md conformance, test
-   quality, UX taste). Findings go back via buz; implementer reworks. Max 2
-   rework rounds; then reassign or escalate.
-3. Coordinator approval: PR review comment summarizing what was checked +
-   seal + buz the maintainer with `{product, pr, branch, verdict}`.
-4. Maintainer: final review of the approved PR, merge (squash) or bounce
-   back with reasons. Kernel-level fixes discovered in review go to the
-   maintainer, not the implementer.
+All work lands through local branches in the shared repo — do not open
+GitHub PRs, do not push branches to origin. Only the maintainer pushes
+(main, after merging).
+
+1. Implementer: worktree + local branch `product/<name>` → implement →
+   `make check` green → commit → seal JSON → buz coordinator.
+2. Coordinator: deep review of the local branch from the repo root
+   (`git diff main...product/<name>`, run the gate in the worktree).
+   Findings go back via buz; implementer reworks. Max 2 rework rounds;
+   then reassign or escalate.
+3. Coordinator approval: review summary in the seal + buz the maintainer
+   with `{product, branch, verdict, review_notes}`.
+4. Maintainer: final review of the approved branch, local squash merge to
+   `main` + push, or bounce back with reasons. Kernel-level fixes
+   discovered in review go to the maintainer, not the implementer.
 
 ## Hard rules for coordinators and implementers
 
-- Never push to `main`; never merge PRs.
+- Never push to any remote; never merge. Landing on `main` is the
+  maintainer's job alone.
 - Never modify `internal/api`, `internal/config`, `internal/output`,
   `internal/registry`, `tools/gen`, `tools/lint`, the Makefile, or CI
   workflows. If a shard needs a kernel change, buz the maintainer and block

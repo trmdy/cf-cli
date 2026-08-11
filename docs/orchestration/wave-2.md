@@ -5,7 +5,7 @@ wave-2 coordinator. Wave 1 (zones, r2, kv, cache, load-balancers) runs
 concurrently under a different coordinator — its shards are NOT yours.
 
 Unlike wave 1 there is no ramp: spawn all ten implementers immediately and
-review PRs as they arrive.
+review branches as they arrive.
 
 ## Shards and harness assignment
 
@@ -29,11 +29,11 @@ review PRs as they arrive.
 - Unset GOROOT/GOBIN in implementer environments (mise Go 1.23 shadows the
   required brew Go 1.25).
 - Implementers follow docs/STYLE.md, dns.go exemplar, tests required,
-  `make check` green before PR, PR title `porcelain: <product>`.
-- root.go one-line AddCommand conflicts across PRs are expected; the
+  `make check` green before handoff; commits stay on the local branch (NO GitHub PRs, no pushes).
+- root.go one-line AddCommand conflicts across branches are expected; the
   maintainer resolves them at merge. Implementers do not rebase onto other
   product branches.
-- Kernel files are off limits (see PROCESS.md). Reject violating PRs.
+- Kernel files are off limits (see PROCESS.md). Reject violating branches.
 - Max 2 rework rounds, then reassign to a different harness or escalate.
 - Approvals, blockers, and the wave summary go to the maintainer
   (`apiary-waggle-mso8zefe-1`) via buz, JSON payloads as in PROCESS.md.

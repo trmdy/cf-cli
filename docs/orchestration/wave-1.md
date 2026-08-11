@@ -24,10 +24,10 @@ real user needs, not endpoint mirroring.
   `internal/cli/root.go` (that one-line AddCommand edit is allowed).
 - Follow `docs/STYLE.md`; `internal/cli/dns.go` is the exemplar to copy.
 - Tests for every command's request construction (httptest; no real API).
-- `make check` must be green before opening a PR (this runs vet, the style
+- `make check` must be green before handing the branch to review (vet, style
   linter, all tests, and the build).
-- Deliverable: a PR to main titled `porcelain: <product>`, plus a seal:
-  `{"product": "...", "branch": "...", "pr": N, "status": "ready|blocked",
+- Deliverable: a committed local branch, plus a seal:
+  `{"product": "...", "branch": "...",  "status": "ready|blocked",
   "notes": "..."}` and a buz message to you.
 
 ## Coordinator duties
@@ -37,19 +37,19 @@ real user needs, not endpoint mirroring.
    then spawn the implementer with `--cwd` set to that worktree.
    Ground truth for spawn flags: `hive ps --wide` shows working invocations;
    use `--account auto` for codex/claude bees.
-2. Ramp: start ONE implementer (cache — smallest shard), verify its PR
+2. Ramp: start ONE implementer (cache — smallest shard), verify its branch
    passes your review end to end, then start the remaining four.
 3. Review adversarially: correctness against the spec (use `--dry-run`
    output), STYLE.md conformance beyond what the linter catches, test
-   quality, help-text/UX taste, no kernel-file edits (check the PR diff
+   quality, help-text/UX taste, no kernel-file edits (check the branch diff
    touches only its own files + the root.go wiring line).
 4. Max 2 rework rounds per shard; after that reassign to a different
    harness or escalate to the maintainer.
-5. On approval: PR review comment summarizing what you verified, then buz
+5. On approval: review summary in your seal, then buz
    the maintainer (`hive buz send apiary-waggle-mso8zefe-1 --sender <you> -p
-   '<json>'`) with `{product, pr, branch, verdict: approved}`.
+   '<json>'`) with `{product, branch, verdict: approved, review_notes}`.
 6. Keep `docs/orchestration/wave-1-assignments.json` up to date in YOUR
-   working copy only (do not commit it): shard -> bee id, state, pr, rounds.
+   working copy only (do not commit it): shard -> bee id, state, branch, rounds.
    Reconcile from `hive fleet --json` at the top of every cycle; hold no
    fleet state in memory.
 7. When all 5 shards are approved (or terminally blocked), send the
@@ -57,7 +57,7 @@ real user needs, not endpoint mirroring.
 
 ## Stop conditions
 
-- Shard done: PR approved and handed up.
+- Shard done: branch approved and handed up.
 - Shard blocked: 2 failed rework rounds + 1 reassignment attempt.
 - Wave done: all shards done/blocked.
 - Kill switch: the maintainer may retire the wave at any time; treat a buz
