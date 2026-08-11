@@ -196,6 +196,10 @@ Re-review verdict: approved at `adc47a8`.
 - Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
   at `adc47a8` with GOROOT/GOBIN unset.
 
+Maintainer handoff: approved branch `product/pages` was squash-merged as
+`68e9d78`. The clean Pages worktree/local branch was removed and implementer
+`CL.91a` retired.
+
 ## Images — `product/images`
 
 Initial verdict: changes required, rework round 1.
@@ -232,3 +236,33 @@ Re-review verdict: approved at `53e9451`.
 
 Remaining documented tradeoff: V1's nested `{images:[]}` response uses a tested
 product-local page loop rather than the shared flat-result paginator.
+
+Maintainer handoff: approved branch `product/images` was squash-merged to main.
+The clean Images worktree/local branch was removed and implementer `GR.bb2d`
+retired.
+
+## Logpush — `product/logpush`
+
+Initial verdict: changes required, rework round 1.
+
+- Blocking: the update command exposes `--dataset` and serializes `dataset`, but
+  the pinned/current Logpush `PUT /logpush/jobs/{job_id}` request schema does not
+  accept dataset changes. Keep `--dataset` create-only so the porcelain does not
+  advertise an operation the API cannot perform.
+- Blocking: all three delivery controls accept arbitrary signed integers even
+  though the API accepts only `0` or fixed bounded ranges: bytes 5,000,000
+  through 1,000,000,000; interval 30 through 300 seconds; records 1,000 through
+  1,000,000. Validate locally on create and update and cover `0`, both bounds,
+  and values immediately outside them.
+- Coverage: add request-shape tests for the untested job get/delete and ownership
+  challenge commands, including delete force/ID validation. Add at least one
+  zone-name resolution case and JSON/query rendering coverage for each custom
+  table handler (`jobs list` and `datasets fields`).
+
+The initial diff changes only `internal/cli/logpush.go`,
+`internal/cli/logpush_test.go`, and the root registration; no prohibited kernel
+paths are present. The current-main `Makefile check`, including `fmt-check`, is
+green at `be93a20` with GOROOT/GOBIN unset. Cloudflare's API reference confirms
+the implemented account/zone paths, partial `PUT`, output enums, ownership
+request bodies, and dataset-fields response shape; the findings above are the
+remaining contract and test gaps.
