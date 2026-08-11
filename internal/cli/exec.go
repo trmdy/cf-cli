@@ -9,8 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/TormodHaugland/cf-cli/internal/api"
-	"github.com/TormodHaugland/cf-cli/internal/registry"
+	"github.com/trmdy/cf-cli/internal/api"
+	"github.com/trmdy/cf-cli/internal/registry"
 )
 
 // scope params are filled from --account-id/--zone-id (flag > env > profile)

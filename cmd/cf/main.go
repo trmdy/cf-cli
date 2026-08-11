@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TormodHaugland/cf-cli/internal/cli"
+	"github.com/trmdy/cf-cli/internal/cli"
 )
 
 func main() {

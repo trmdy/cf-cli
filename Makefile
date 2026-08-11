@@ -1,7 +1,7 @@
 SPEC_URL := https://raw.githubusercontent.com/cloudflare/api-schemas/main/openapi.json
 SPEC := specs/openapi.json
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
-LDFLAGS := -X github.com/TormodHaugland/cf-cli/internal/cli.Version=$(VERSION)
+LDFLAGS := -X github.com/trmdy/cf-cli/internal/cli.Version=$(VERSION)
 
 .PHONY: all build test vet fmt gen spec check clean
 

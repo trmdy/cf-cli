@@ -1,4 +1,4 @@
-module github.com/TormodHaugland/cf-cli
+module github.com/trmdy/cf-cli
 
 go 1.25.6
 

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/TormodHaugland/cf-cli/internal/registry"
+	"github.com/trmdy/cf-cli/internal/registry"
 )
 
 func loadSpecForTest(t *testing.T) *spec {

@@ -20,7 +20,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/TormodHaugland/cf-cli/internal/registry"
+	"github.com/trmdy/cf-cli/internal/registry"
 )
 
 type rawSchema struct {

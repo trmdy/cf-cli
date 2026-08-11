@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/TormodHaugland/cf-cli/internal/api"
-	"github.com/TormodHaugland/cf-cli/internal/config"
-	"github.com/TormodHaugland/cf-cli/internal/output"
+	"github.com/trmdy/cf-cli/internal/api"
+	"github.com/trmdy/cf-cli/internal/config"
+	"github.com/trmdy/cf-cli/internal/output"
 )
 
 // Version is stamped via -ldflags at build time.
