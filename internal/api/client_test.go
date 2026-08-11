@@ -146,3 +146,54 @@ func TestDumpRedactsToken(t *testing.T) {
 		t.Errorf("unexpected body: %s", d.Body)
 	}
 }
+
+func TestDoRawReturnsBytesVerbatim(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if ct := r.Header.Get("Content-Type"); r.Method == "PUT" && ct != "text/plain" {
+			t.Errorf("Content-Type = %q, want text/plain", ct)
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Write([]byte{0x00, 0x01, 0xFF, 'h', 'i'})
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "tok", "test")
+	resp, err := c.DoRaw(context.Background(), Request{
+		Method: "PUT", Path: "/kv", Body: []byte("raw value"), ContentType: "text/plain",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.ContentType != "application/octet-stream" || len(resp.Body) != 5 || resp.Body[2] != 0xFF {
+		t.Errorf("raw response mangled: %+v", resp)
+	}
+}
+
+func TestDoRawErrorParsesEnvelope(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+		fmt.Fprint(w, `{"success":false,"errors":[{"code":10009,"message":"key not found"}]}`)
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "tok", "test")
+	_, err := c.DoRaw(context.Background(), Request{Method: "GET", Path: "/kv"})
+	apiErr, ok := err.(*APIError)
+	if !ok || apiErr.StatusCode != 404 || !strings.Contains(apiErr.Error(), "key not found") {
+		t.Fatalf("expected enveloped APIError, got %v", err)
+	}
+}
+
+func TestDumpNonJSONContentType(t *testing.T) {
+	c := New("", "tok", "test")
+	d, err := c.Dump(Request{Method: "PUT", Path: "/kv", Body: []byte("plain text"), ContentType: "text/plain"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.Headers["Content-Type"] != "text/plain" {
+		t.Errorf("dump content-type: %v", d.Headers)
+	}
+	if string(d.Body) != `"plain text"` {
+		t.Errorf("dump body: %s", d.Body)
+	}
+}

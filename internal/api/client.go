@@ -42,11 +42,20 @@ func New(baseURL, token, version string) *Client {
 }
 
 // Request is a fully-resolved API request: Path has no {placeholders} left.
+// ContentType applies when Body is set and defaults to application/json.
 type Request struct {
-	Method string
-	Path   string
-	Query  url.Values
-	Body   []byte
+	Method      string
+	Path        string
+	Query       url.Values
+	Body        []byte
+	ContentType string
+}
+
+func (r Request) contentType() string {
+	if r.ContentType != "" {
+		return r.ContentType
+	}
+	return "application/json"
 }
 
 type Message struct {
@@ -155,11 +164,11 @@ func (c *Client) Dump(r Request) (*RequestDump, error) {
 		h["Authorization"] = "Bearer ********"
 	}
 	if len(r.Body) > 0 {
-		h["Content-Type"] = "application/json"
+		h["Content-Type"] = r.contentType()
 	}
 	d := &RequestDump{Method: r.Method, URL: u, Headers: h}
 	if len(r.Body) > 0 {
-		if json.Valid(r.Body) {
+		if r.contentType() == "application/json" && json.Valid(r.Body) {
 			d.Body = r.Body
 		} else {
 			quoted, _ := json.Marshal(string(r.Body))
@@ -189,7 +198,7 @@ func (c *Client) Do(ctx context.Context, r Request) (*Envelope, error) {
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
 	if len(r.Body) > 0 {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", r.contentType())
 	}
 	req.Header.Set("User-Agent", c.UserAgent)
 	req.Header.Set("Accept", "application/json")
@@ -208,6 +217,59 @@ func (c *Client) Do(ctx context.Context, r Request) (*Envelope, error) {
 		return env, &APIError{StatusCode: resp.StatusCode, Errors: env.Errors, RawBody: string(data)}
 	}
 	return env, nil
+}
+
+// RawResponse is the result of DoRaw: the body verbatim, no envelope
+// parsing. For endpoints that return raw bytes (KV values, R2 objects,
+// BIND exports).
+type RawResponse struct {
+	StatusCode  int
+	ContentType string
+	Body        []byte
+}
+
+// DoRaw sends the request and returns the response body untouched. Error
+// responses (>= 400) are parsed as envelopes when possible so *APIError
+// still carries Cloudflare's error messages.
+func (c *Client) DoRaw(ctx context.Context, r Request) (*RawResponse, error) {
+	u, err := c.buildURL(r)
+	if err != nil {
+		return nil, err
+	}
+	var body io.Reader
+	if len(r.Body) > 0 {
+		body = bytes.NewReader(r.Body)
+	}
+	req, err := http.NewRequestWithContext(ctx, r.Method, u, body)
+	if err != nil {
+		return nil, err
+	}
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+	if len(r.Body) > 0 {
+		req.Header.Set("Content-Type", r.contentType())
+	}
+	req.Header.Set("User-Agent", c.UserAgent)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 100<<20))
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode >= 400 {
+		env := parseEnvelope(resp.StatusCode, data)
+		return nil, &APIError{StatusCode: resp.StatusCode, Errors: env.Errors, RawBody: string(data)}
+	}
+	return &RawResponse{
+		StatusCode:  resp.StatusCode,
+		ContentType: resp.Header.Get("Content-Type"),
+		Body:        data,
+	}, nil
 }
 
 func parseEnvelope(status int, data []byte) *Envelope {
