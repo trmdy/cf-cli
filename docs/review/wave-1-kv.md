@@ -1,8 +1,8 @@
 # Wave 1 review: KV
 
 - Branch: `product/kv`
-- Reviewed commit: `a9bc3a890d328dd26b0fe8e453591dcc8c0a18ec`
-- Verdict: changes requested (round 1)
+- Approved commit: `9bf1ea7576ccaa494e7c285647c12df78084ecd3`
+- Verdict: approved after round 1
 
 ## Scope and boundary
 
@@ -14,3 +14,13 @@ The committed branch diff is limited to `internal/cli/kv.go`, `internal/cli/kv_t
 2. `kv key get --query ...` currently enables JSON rendering without an explicit `--output json`. This conflicts with the maintainer's raw-value contract: get must emit raw bytes unless JSON output is explicitly selected. Reject `--query` unless `--output json` was explicitly provided, retain exact raw output otherwise, and cover both the rejection and the explicit JSON/query path.
 
 The raw `DoRaw` path, `text/plain` single-key write, bulk metadata guidance, endpoint methods/paths, destructive confirmations, namespace resolution, and branch boundary otherwise look sound.
+
+## Round 1 resolution and verification
+
+- `--limit` now enforces 10–1000 and tests both rejected and accepted boundaries.
+- Raw get now rejects `--query` unless `--output json` is explicit; both the rejection and explicit JSON/query path are tested.
+- `git diff --check main...product/kv`: passed.
+- `env -u GOROOT -u GOBIN make check`: passed.
+- `env -u GOROOT -u GOBIN go test -count=1 ./internal/cli`: passed.
+
+No remaining blocking findings.

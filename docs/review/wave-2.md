@@ -46,6 +46,10 @@ Remaining documented tradeoff: libraries over 1,000 videos require manual time
 windowing because the Stream endpoint is single-page and exposes no standard
 `result_info` cursor for the shared paginator.
 
+Maintainer handoff: approval buz `019feff4-4063-769b-b057-bd43639d6a48`;
+squash-merged as `7e1855c`. The clean Stream worktree/local branch was removed
+and sealed implementer `GR.e41a` retired after the merge notification.
+
 ## Queues — `product/queues`
 
 Initial verdict: changes required, rework round 1.
@@ -63,3 +67,37 @@ Communication: findings sent to `CO.6517` by buz subject
 `review.rework.round1`; direct notification also delivered. Acceptance requires
 the local-only rework branch, a green full gate, and a new seal/buz payload with
 `rework_round: 1`.
+
+Re-review verdict: approved at `e4ac222`.
+
+- A product-scoped resolver bypasses lookup for 32-hex IDs and auto-paginates
+  the account queue list for names; queue get/update/delete, consumer add/remove,
+  and message send/pull/ack all use the resolved ID.
+- Name hit/miss, direct ID, nested consumer/message requests, and dry-run lookup
+  behavior are covered by tests.
+- JSON message bodies decode to `any`, preserving objects, arrays, strings,
+  numbers, booleans, and `null`, while malformed JSON is rejected.
+- `git diff main...product/queues` changes only `internal/cli/root.go`,
+  `internal/cli/queues.go`, and `internal/cli/queues_test.go`; no prohibited
+  kernel paths are changed.
+- Coordinator gate: `env -u GOROOT -u GOBIN make check` green at `e4ac222`.
+
+Remaining low-risk tradeoff: a queue name that itself looks exactly like a
+32-character hexadecimal resource ID is treated as an ID and skips lookup.
+
+## Hyperdrive — `product/hyperdrive`
+
+Initial verdict: changes required, rework round 1.
+
+- Blocking: `--sslmode` validation is case-insensitive and whitespace-tolerant,
+  but the original value is serialized. Values such as `VERIFY-FULL` therefore
+  pass locally and send an invalid API enum. Normalize the value to its canonical
+  lowercase form for create and update, and test the serialized body.
+- Blocking: `--connection-limit` enforced the documented minimum of 5 but not
+  the API's absolute maximum of 100. Reject larger values for both create and
+  update and add boundary coverage.
+
+The initial branch scope was clean and the coordinator full gate was green at
+`ca7fc5a`; the verdict remains changes required until the request-validation
+rework is sealed. Findings were sent to `CO.d2ed` by buz subject
+`review.rework.round1` and direct notification.

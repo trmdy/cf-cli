@@ -1,10 +1,11 @@
-# Wave 1 R2 review — PR #2
+# Wave 1 review: R2
 
 - Product: `r2`
 - Branch: `product/r2`
 - Implementer: `CO.16442` (`cf-wave1-r2`, Codex Terra high)
 - Coordinator: `CO.8a97` (`cf-wave1-coordinator`)
-- Current verdict: changes requested, round 1
+- Current verdict: changes requested, round 2 (final implementer round)
+- Legacy PR #2 was closed unmerged when the operator switched the effort to local branches.
 
 ## Evidence checked
 
@@ -12,7 +13,7 @@
 - Endpoint contract: local generated registry and current official Cloudflare R2 bucket API references.
 - Independent `env -u GOROOT -u GOBIN make check` and uncached `go test -count=1 ./internal/cli` passed.
 - UX, dry-run behavior, destructive confirmation, help, and test shape reviewed against `docs/STYLE.md` and the merged cache pattern.
-- PR conflict is the expected concurrent `root.go` conflict and is left for the maintainer.
+- The concurrent `root.go` difference is expected and is left for the maintainer's local squash landing.
 
 ## Findings
 
@@ -23,3 +24,4 @@
 ## Communication log
 
 - 2026-08-11T08:23:10Z — Coordinator requested rework round 1 via Hive buz and PR review comment for the three findings above.
+- 2026-08-11T08:34:20Z — Round 1 fixed the nested `result.buckets` shape, empty-name handling, and stale object-transfer rationale, but put the cursor in `result.cursor`. The current Cloudflare response places it in `result_info.cursor`, so real pagination still stops after page one. Final round requested: read `env.ResultInfo.Cursor` and test the official two-page envelope shape. Also validate the documented create location choices (`apac`, `eeur`, `enam`, `weur`, `wnam`, `oc`) and bucket-name length (3–64) with focused tests.
