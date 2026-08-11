@@ -367,6 +367,10 @@ Re-review verdict: approved at `d810930`.
 - Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
   at `d810930` with GOROOT/GOBIN unset.
 
+Maintainer handoff: approved branch `product/turnstile` was squash-merged as
+`f1c9c96`. The clean Turnstile worktree/local branch was removed and implementer
+`CL.3937a` retired.
+
 ## Tunnel — `product/tunnel`
 
 Initial verdict: changes required, rework round 1.
@@ -394,3 +398,24 @@ semantics, confirmations, rendering, and remote-config default are otherwise
 sound. The initial diff is limited to Tunnel CLI/test plus root registration,
 with no prohibited kernel or Wave 1 paths. The current-main `Makefile check`,
 including `fmt-check`, is green at `3fff8bb` with GOROOT/GOBIN unset.
+
+Round-1 re-review verdict: one blocking ordering defect remains; rework round 2.
+
+- The secret contract, route comment/UUID checks, deprecated `CONNS` removal,
+  help cleanup, scope, and current-main gate are correct at `f4d3dd1`.
+- Blocking: route add calls `resolveTunnelID` before `buildTunnelRouteBody`,
+  where the comment and virtual-network validations live. With a tunnel name,
+  an invalid local flag therefore performs a lookup and may report a network
+  error instead of the local contract violation. Validate those options before
+  client construction/name resolution, retain defensive body validation, and
+  cover both invalid options with name-based zero-request CLI tests.
+
+Final verdict after round 2: approved at `427b361`.
+
+- A shared local route-option validator now runs before client construction or
+  name resolution and remains enforced defensively by the body builder.
+- Name-based negative tests prove malformed comments and virtual-network IDs
+  generate zero requests; a route-list regression case covers the same order.
+- Final scope is Tunnel CLI/test plus root registration only; no kernel or Wave
+  1 files changed, `git diff --check` is clean, and the current-main gate
+  (including `fmt-check`) passes with GOROOT/GOBIN unset.
