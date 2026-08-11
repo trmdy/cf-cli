@@ -266,3 +266,44 @@ green at `be93a20` with GOROOT/GOBIN unset. Cloudflare's API reference confirms
 the implemented account/zone paths, partial `PUT`, output enums, ownership
 request bodies, and dataset-fields response shape; the findings above are the
 remaining contract and test gaps.
+
+Re-review verdict: approved at `4e11356`.
+
+- `--dataset` is now create-only and cannot be advertised or serialized by
+  update.
+- All three batch controls accept zero or their exact inclusive API ranges and
+  reject values immediately outside them on both create and update.
+- Request tests now cover job get/delete, ownership challenge, zone-name
+  resolution, force/ID safety, and JSON/query paths for both custom tables.
+- The branch remains limited to Logpush CLI/test plus root registration, with no
+  prohibited kernel or Wave 1 paths.
+- Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
+  at `4e11356` with GOROOT/GOBIN unset.
+
+## Vectorize — `product/vectorize`
+
+Initial verdict: changes required, rework round 1.
+
+- Blocking: `--filter null` is accepted because JSON null unmarshals into a nil
+  map, despite the flag requiring an object. Reject null and cover null, array,
+  scalar, malformed, empty-object, and valid-object cases.
+- Blocking: query validates only `topK >= 1`. Vectorize v2 allows at most 100
+  results without values/metadata and at most 50 when values or indexed/all
+  metadata are returned. Enforce the conditional bound using effective flag
+  values, including explicit false/none, with boundary tests.
+- Blocking: `--unparsable-behavior discard` is checked only after strict local
+  per-vector parsing, so malformed or incomplete NDJSON never reaches the API
+  to be discarded. Preserve friendly local validation for normal/error mode but
+  let explicit discard delegate per-line parse failures to the API; cover both
+  NDJSON and JSON-array normalization behavior.
+- Input contract: in normal/error mode require numeric dense `values`, enforce
+  the documented 64-byte vector-ID and namespace limits when present, and add
+  the 64-byte index-name bound to create validation. These are local checks on
+  data the command already parses; no index GET or kernel change is required.
+
+The initial diff is limited to Vectorize CLI/test plus root registration and
+uses the already-landed shared `api.Request.ContentType`; no prohibited kernel
+path is changed. The pinned spec confirms every v2 route, body key, enum, name
+pattern, metric/preset, and 1–1536 dimension bound. The current-main
+`Makefile check`, including `fmt-check`, is green at `7aa19b0` with
+GOROOT/GOBIN unset.
