@@ -311,3 +311,69 @@ path is changed. The pinned spec confirms every v2 route, body key, enum, name
 pattern, metric/preset, and 1–1536 dimension bound. The current-main
 `Makefile check`, including `fmt-check`, is green at `7aa19b0` with
 GOROOT/GOBIN unset.
+
+Re-review verdict: approved at `139dced`.
+
+- Filter decoding now asserts an object shape and rejects null, arrays,
+  scalars, and malformed JSON while accepting empty and populated objects.
+- `topK` accepts 1–100 normally and 1–50 when values or indexed/all metadata
+  are returned; explicit false/none retains the 100 ceiling.
+- Explicit discard mode passes per-line failures through under the API query
+  option, while default/error mode retains actionable strict validation.
+- Strict vector parsing requires numeric values and enforces 64-byte vector ID,
+  namespace, and create-name limits, all with boundary coverage.
+- The branch remains Vectorize CLI/test plus root registration only; no kernel
+  or Wave 1 path changed.
+- Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
+  at `139dced` with GOROOT/GOBIN unset.
+
+## Turnstile — `product/turnstile`
+
+Initial verdict: changes required, rework round 1.
+
+- Blocking: list help/examples say `--filter checkout`, but the API requires
+  `field:value` and supports only `name` and `sitekey`; the documented example
+  returns 400. Validate the grammar/field before network I/O, correct the help
+  and examples, and preserve the API-defined explicitly empty filter behavior.
+- Scope/contract: expose create-only `--region world|china`. Region is an API
+  create property and immutable afterward; validate the enum, include it only
+  on create, and keep update's read-modify-write body from attempting to change
+  it.
+- Blocking bounds: widget name is 1–254 characters and the domains array has at
+  most 10 entries. Enforce both on create and update (including merged update
+  bodies) with boundary tests.
+
+The update GET+required-field PUT approach matches the pinned request schema;
+secret rotation method/body/grace-period behavior, pagination, enum handling,
+tri-state booleans, confirmations, rendering, and sitekey escaping are sound.
+The diff changes only Turnstile CLI/test plus root registration, with no kernel
+or Wave 1 files. The current-main `Makefile check`, including `fmt-check`, is
+green at `e18250d` with GOROOT/GOBIN unset.
+
+## Tunnel — `product/tunnel`
+
+Initial verdict: changes required, rework round 1.
+
+- Blocking: `--secret` rejects decoded values above 64 bytes, but the pinned and
+  current API contract has only a 32-byte minimum. Remove the invented upper
+  bound, correct help/errors, and cover 31/32/65-byte values plus malformed
+  base64.
+- Blocking: route comments are limited to 100 characters, but the command sends
+  longer values. Enforce the bound before tunnel lookup/network I/O and add
+  boundary tests.
+- Input contract: direct route IDs and `--virtual-network-id` values are UUIDs.
+  Reject malformed identifiers locally on add/list/remove while retaining the
+  network-resolution and ambiguity behavior; cover direct-ID and CIDR paths.
+- Compatibility: the tunnel `connections` field is deprecated and Cloudflare
+  has announced it will return an empty array after October 5, 2026. Remove the
+  misleading `CONNS` table column rather than shipping a count that will soon
+  report zero for healthy tunnels; status remains the useful summary signal.
+- Help cleanup: remove the duplicated `config get` example while touching the
+  file.
+
+The standard route-ID endpoints, account/name resolution, CIDR canonicalization
+and ambiguity handling, config wrapper round-trip, token retrieval, list query
+semantics, confirmations, rendering, and remote-config default are otherwise
+sound. The initial diff is limited to Tunnel CLI/test plus root registration,
+with no prohibited kernel or Wave 1 paths. The current-main `Makefile check`,
+including `fmt-check`, is green at `3fff8bb` with GOROOT/GOBIN unset.
