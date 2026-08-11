@@ -13,6 +13,7 @@ func newWorkersCmd(g *globalOpts) *cobra.Command {
 	}
 	cmd.AddCommand(
 		newWorkersPlatformCmd(g),
+		newWorkersDispatchCmd(g),
 	// sub-shard constructors register here, one line each:
 	// newWorkersScriptsCmd(g),
 	// newWorkersPlatformCmd(g),
