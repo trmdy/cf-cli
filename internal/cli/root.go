@@ -71,6 +71,7 @@ func newRootCmd() *cobra.Command {
 		newCacheCmd(g),
 		newZonesCmd(g),
 		newStreamCmd(g),
+		newKVCmd(g),
 	)
 	return cmd
 }
