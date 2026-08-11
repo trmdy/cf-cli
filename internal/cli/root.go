@@ -72,6 +72,7 @@ func newRootCmd() *cobra.Command {
 		newZonesCmd(g),
 		newStreamCmd(g),
 		newKVCmd(g),
+		newQueuesCmd(g),
 	)
 	return cmd
 }
