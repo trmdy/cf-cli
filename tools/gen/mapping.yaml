@@ -1,0 +1,40 @@
+# Curated product taxonomy for the generated `cf api` command tree.
+#
+# Products derive from the first URL path segment after the /accounts/{id} or
+# /zones/{id} scope prefix, slugified (underscores -> dashes). Entries here
+# override that default. Keys are either "scope:segment" (scope is
+# account | zone | root) or a bare segment applying to every scope.
+#
+# Keep this reviewed by a human: it defines the CLI's whole taxonomy.
+
+overrides:
+  # legibility renames
+  zone:settings: zone-settings
+  zone:purge_cache: cache
+  zone:pagerules: page-rules
+  zone:ct: certificate-transparency
+  zone:zerotrust: zero-trust
+  zone:acm: certificates-acm
+  account:billable: billing
+  account:challenges: turnstile          # /challenges/widgets is Turnstile
+  account:storage: kv                    # /storage/kv/namespaces is Workers KV
+  account:cfd_tunnel: tunnel
+  account:teamnet: tunnel-routes
+  account:mnm: magic-network-monitoring
+  account:dls: data-localization
+  account:urlscanner: url-scanner
+  account:slurper: r2-slurper            # R2 Super Slurper migration service
+  account:zt_risk_scoring: zero-trust-risk-scoring
+  account:rum: web-analytics
+  root:certificates: origin-ca           # /certificates is Origin CA
+  custom_ns: custom-nameservers
+  mtls_certificates: mtls-certificates
+  secondary_dns: secondary-dns
+
+op_overrides:
+  # singletons where GET means "get", not "list"
+  "GET /user": { name: get }
+  "PATCH /user": { name: update }
+  "GET /zones/{zone_id}/purge_cache": { product: cache, name: get }
+  # purge is the canonical name for cache purge
+  "POST /zones/{zone_id}/purge_cache": { product: cache, name: purge }
