@@ -159,6 +159,10 @@ Re-review verdict: approved at `d334b36`.
 - Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
   at `d334b36` with GOROOT/GOBIN unset.
 
+Maintainer handoff: approval buz `019feffd-c8c8-774b-8ef0-1deac7bbbb72`;
+squash-merged as `c21b690`. The clean D1 worktree/local branch was removed and
+implementer `CO.0350` retired.
+
 ## Pages — `product/pages`
 
 Initial verdict: changes required, rework round 1.
@@ -212,3 +216,19 @@ The initial diff changes only `internal/cli/images.go`,
 the shared `api.Request.ContentType` without a kernel edit. It passed the
 current-main gate including `fmt-check` at `8f1dd15`. Findings were sent to
 `GR.bb2d` by buz subject `review.rework.round1` and direct message.
+
+Re-review verdict: approved at `53e9451`.
+
+- `Flags().Changed("creator")` is threaded through dry-run and every list page;
+  unset omits the parameter while explicit empty sends `creator=`. Both cases
+  and multi-page propagation are covered.
+- Metadata parsing now requires a non-null object and rejects null, arrays,
+  scalars, and malformed JSON at helper and CLI levels.
+- The account helper is product-scoped as `requireImagesAccountID`.
+- Branch scope remains Images CLI/test plus root registration; no prohibited
+  kernel paths.
+- Coordinator gate: current-main `Makefile check`, including `fmt-check`, green
+  at `53e9451` with GOROOT/GOBIN unset.
+
+Remaining documented tradeoff: V1's nested `{images:[]}` response uses a tested
+product-local page loop rather than the shared flat-result paginator.
