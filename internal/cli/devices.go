@@ -12,6 +12,7 @@ func newDevicesCmd(g *globalOpts) *cobra.Command {
 		Short: "Manage Zero Trust devices, WARP profiles, and posture",
 	}
 	cmd.AddCommand(
+		newDevicesFleetCmd(g),
 	// sub-shard constructors register here, one line each:
 	// newDevicesFleetCmd(g),
 	// newDevicesPostureCmd(g),
