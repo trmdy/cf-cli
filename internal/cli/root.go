@@ -97,6 +97,7 @@ func newRootCmd() *cobra.Command {
 		newAddressingCmd(g),
 		newAIGatewayCmd(g),
 		newAlertingCmd(g),
+		newCustomHostnamesCmd(g),
 	)
 	return cmd
 }
