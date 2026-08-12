@@ -5,12 +5,26 @@ is minimal and abandoned. `cf` aims to cover **the entire Cloudflare API**
 (3,200+ operations) with a fast, single-binary CLI.
 
 ```
-cf auth login                          # store an API token
-cf dns list --zone example.com         # porcelain: nice UX for common work
+cf auth login                          # interactive: token, account, zone
+cf dns list                            # porcelain: nice UX for common work
 cf dns create www.example.com --type A --content 192.0.2.1 --proxied
+cf workers script upload my-worker --file worker.js
+cf cache purge --zone example.com --everything --force
 cf api r2 buckets-list                 # plumbing: every endpoint, generated
 cf api raw GET /zones                  # escape hatch: any path
+cf zones list -q '.[].name'            # jq built in
 ```
+
+## Install
+
+```sh
+brew install trmdy/tap/cf              # macOS/Linux
+go install github.com/trmdy/cf-cli/cmd/cf@latest
+make install                           # from a checkout
+```
+
+Shell completions: `cf completion zsh|bash|fish|powershell` (see
+`cf completion <shell> --help` for setup).
 
 ## Design
 
