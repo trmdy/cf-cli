@@ -13,6 +13,7 @@ func newGatewayCmd(g *globalOpts) *cobra.Command {
 	}
 	cmd.AddCommand(
 		newGatewayConfigCmd(g),
+		newGatewayPoliciesCmd(g),
 	// sub-shard constructors register here, one line each:
 	// newGatewayPoliciesCmd(g),
 	// newGatewayConfigCmd(g),
