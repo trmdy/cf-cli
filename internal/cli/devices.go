@@ -13,6 +13,7 @@ func newDevicesCmd(g *globalOpts) *cobra.Command {
 	}
 	cmd.AddCommand(
 		newDevicesFleetCmd(g),
+		newDevicesPostureCmd(g),
 	// sub-shard constructors register here, one line each:
 	// newDevicesFleetCmd(g),
 	// newDevicesPostureCmd(g),
