@@ -90,6 +90,7 @@ func newRootCmd() *cobra.Command {
 		newAICmd(g),
 		newGatewayCmd(g),
 		newDevicesCmd(g),
+		newDexCmd(g),
 		newSpectrumCmd(g),
 		newWebAnalyticsCmd(g),
 		newSSLCertsCmd(g),
