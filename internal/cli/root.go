@@ -95,6 +95,7 @@ func newRootCmd() *cobra.Command {
 		newSSLCertsCmd(g),
 		newWaitingRoomCmd(g),
 		newAddressingCmd(g),
+		newAIGatewayCmd(g),
 	)
 	return cmd
 }
