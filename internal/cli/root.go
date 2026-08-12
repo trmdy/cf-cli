@@ -93,6 +93,7 @@ func newRootCmd() *cobra.Command {
 		newWebAnalyticsCmd(g),
 		newSSLCertsCmd(g),
 		newWaitingRoomCmd(g),
+		newAddressingCmd(g),
 	)
 	return cmd
 }
