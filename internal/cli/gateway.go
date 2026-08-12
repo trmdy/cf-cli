@@ -12,6 +12,7 @@ func newGatewayCmd(g *globalOpts) *cobra.Command {
 		Short: "Manage Zero Trust Gateway policies and configuration",
 	}
 	cmd.AddCommand(
+		newGatewayConfigCmd(g),
 	// sub-shard constructors register here, one line each:
 	// newGatewayPoliciesCmd(g),
 	// newGatewayConfigCmd(g),
