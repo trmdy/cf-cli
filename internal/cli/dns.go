@@ -36,6 +36,7 @@ func newDNSCmd(g *globalOpts) *cobra.Command {
 		Short: "Manage DNS records",
 	}
 	cmd.AddCommand(
+		newDNSConfigCmd(g),
 		newDNSListCmd(g),
 		newDNSGetCmd(g),
 		newDNSCreateCmd(g),
