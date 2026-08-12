@@ -50,6 +50,17 @@ GitHub PRs, do not push branches to origin. Only the maintainer pushes
 - Every status change is a seal or a buz message — no silent state.
 - `make check` green is a precondition for review, not a substitute for it.
 
+## Sub-shard boundary invariant (from the wave-3 retro)
+
+For sub-shards of a shared command group, coordinator review must verify
+mechanically, at every handoff:
+
+1. `git diff --numstat <base>...HEAD -- internal/cli/<group>.go` is exactly
+   `1 0` (one added line, zero removed).
+2. `root.go` has no diff.
+3. The added constructor line sits immediately after `cmd.AddCommand(`
+   (gofmt-stable position); scaffold comments untouched.
+
 ## Wave sizing
 
 Wave 1 is a 5-product pilot (see wave-1.md). Later waves scale to ~10
